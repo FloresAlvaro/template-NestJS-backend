@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { Category } from './entities/category.entity';
@@ -9,6 +13,17 @@ export class CategoriesService {
   private nextCategoryId = 1;
 
   create(createCategoryDto: CreateCategoryDto) {
+    const existingCategory = this.categories.find(
+      (category) =>
+        category.name.toLowerCase() === createCategoryDto.name.toLowerCase(),
+    );
+
+    if (existingCategory) {
+      throw new ConflictException(
+        `A category with the name '${createCategoryDto.name}' already exists`,
+      );
+    }
+
     const now = new Date();
     const category: Category = {
       categoryId: this.nextCategoryId++,
