@@ -50,11 +50,8 @@ export class CategoriesService {
     return this.categories;
   }
 
-  findOne(id: string) {
-    const parsedId = Number(id);
-    const category = this.categories.find(
-      (item) => item.categoryId === parsedId,
-    );
+  findOne(id: number) {
+    const category = this.categories.find((item) => item.categoryId === id);
 
     if (!category) {
       throw new NotFoundException(`Category with id ${id} not found`);
@@ -63,10 +60,21 @@ export class CategoriesService {
     return category;
   }
 
-  update(id: string, updateCategoryDto: UpdateCategoryDto) {
+  update(id: number, updateCategoryDto: UpdateCategoryDto) {
     const category = this.findOne(id);
 
     if (updateCategoryDto.name !== undefined) {
+      const duplicated = this.categories.find(
+        (c) =>
+          c.categoryId !== category.categoryId &&
+          c.name.toLowerCase() === updateCategoryDto.name!.toLowerCase(),
+      );
+
+      if (duplicated) {
+        throw new ConflictException(
+          `A category with the name '${updateCategoryDto.name}' already exists`,
+        );
+      }
       category.name = updateCategoryDto.name;
     }
 
@@ -82,8 +90,13 @@ export class CategoriesService {
     return category;
   }
 
-  remove(id: string) {
+  remove(id: number) {
     const category = this.findOne(id);
+
+    if (!category.isActive) {
+      throw new ConflictException(`Category with id ${id} is already inactive`);
+    }
+
     category.isActive = false;
     category.updatedAt = new Date();
     return category;

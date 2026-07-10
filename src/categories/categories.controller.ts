@@ -5,6 +5,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseIntPipe,
   Patch,
   Post,
   Query,
@@ -104,9 +105,9 @@ export class CategoriesController {
   })
   @ApiParam({
     name: 'id',
-    type: 'string',
+    type: 'number',
     description: 'The unique identifier of the category',
-    example: '1',
+    example: 1,
   })
   @ApiResponse({
     status: 200,
@@ -117,7 +118,7 @@ export class CategoriesController {
     status: 404,
     description: 'Category not found',
   })
-  findOne(@Param('id') id: string) {
+  findOne(@Param('id', ParseIntPipe) id: number) {
     return this.categoriesService.findOne(id);
   }
 
@@ -129,9 +130,9 @@ export class CategoriesController {
   })
   @ApiParam({
     name: 'id',
-    type: 'string',
+    type: 'number',
     description: 'The unique identifier of the category to update',
-    example: '1',
+    example: 1,
   })
   @ApiBody({
     type: UpdateCategoryDto,
@@ -150,8 +151,12 @@ export class CategoriesController {
     status: 404,
     description: 'Category not found',
   })
+  @ApiResponse({
+    status: 409,
+    description: 'Category with this name already exists',
+  })
   update(
-    @Param('id') id: string,
+    @Param('id', ParseIntPipe) id: number,
     @Body() updateCategoryDto: UpdateCategoryDto,
   ) {
     return this.categoriesService.update(id, updateCategoryDto);
@@ -164,9 +169,9 @@ export class CategoriesController {
   })
   @ApiParam({
     name: 'id',
-    type: 'string',
+    type: 'number',
     description: 'The unique identifier of the category to delete',
-    example: '1',
+    example: 1,
   })
   @ApiResponse({
     status: 200,
@@ -176,7 +181,11 @@ export class CategoriesController {
     status: 404,
     description: 'Category not found',
   })
-  remove(@Param('id') id: string) {
+  @ApiResponse({
+    status: 409,
+    description: 'Category is already inactive',
+  })
+  remove(@Param('id', ParseIntPipe) id: number) {
     return this.categoriesService.remove(id);
   }
 }
