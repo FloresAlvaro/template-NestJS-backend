@@ -117,7 +117,6 @@ export class CategoriesController {
   @ApiResponse({
     status: 400,
     description: 'Invalid category ID',
-    type: Category,
   })
   @ApiResponse({
     status: 404,

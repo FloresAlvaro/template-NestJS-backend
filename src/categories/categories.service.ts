@@ -2,15 +2,23 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { Category } from './entities/category.entity';
+import { SubCategoriesService } from 'src/sub-categories/sub-categories.service';
 
 @Injectable()
 export class CategoriesService {
   private readonly categories: Category[] = [];
   private nextCategoryId = 1;
+
+  constructor(
+    @Inject(forwardRef(() => SubCategoriesService))
+    private readonly subCategoriesService: SubCategoriesService,
+  ) {}
 
   create(createCategoryDto: CreateCategoryDto) {
     const existingCategory = this.categories.find(
@@ -95,6 +103,12 @@ export class CategoriesService {
 
     if (!category.isActive) {
       throw new ConflictException(`Category with id ${id} is already inactive`);
+    }
+
+    if (this.subCategoriesService.hasActiveSubCategories(id)) {
+      throw new ConflictException(
+        `Cannot deactivate category with id ${id}: it still has active subcategories`,
+      );
     }
 
     category.isActive = false;
