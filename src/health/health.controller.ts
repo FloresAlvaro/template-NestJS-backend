@@ -10,14 +10,17 @@ export class HealthController {
   @Get()
   @ApiOperation({
     summary: 'Health check',
-    description:
-      'Checks the health status of the application and its dependencies',
+    description: 'Checks the health status of the application',
   })
   @ApiResponse({
     status: 200,
     description: 'Application is healthy',
     schema: {
-      example: { status: 'ok', timestamp: '2024-01-15T10:30:00Z' },
+      example: {
+        status: 'ok',
+        timestamp: '2024-01-15T10:30:00Z',
+        uptime: 123.45,
+      },
     },
   })
   check() {

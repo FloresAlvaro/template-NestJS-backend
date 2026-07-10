@@ -115,6 +115,11 @@ export class CategoriesController {
     type: Category,
   })
   @ApiResponse({
+    status: 400,
+    description: 'Invalid category ID',
+    type: Category,
+  })
+  @ApiResponse({
     status: 404,
     description: 'Category not found',
   })
@@ -164,8 +169,8 @@ export class CategoriesController {
 
   @Delete(':id')
   @ApiOperation({
-    summary: 'Delete a category',
-    description: 'Deletes a specific category by its ID',
+    summary: 'Deactivate a category',
+    description: 'Soft-deletes (deactivates) a specific category by its ID',
   })
   @ApiParam({
     name: 'id',
@@ -175,7 +180,8 @@ export class CategoriesController {
   })
   @ApiResponse({
     status: 200,
-    description: 'Category deleted successfully',
+    description: 'Category deactivated successfully',
+    type: Category,
   })
   @ApiResponse({
     status: 404,
