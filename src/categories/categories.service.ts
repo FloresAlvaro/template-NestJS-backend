@@ -90,10 +90,6 @@ export class CategoriesService {
       category.description = updateCategoryDto.description;
     }
 
-    if (updateCategoryDto.isActive !== undefined) {
-      category.isActive = updateCategoryDto.isActive;
-    }
-
     category.updatedAt = new Date();
     return category;
   }
@@ -112,6 +108,16 @@ export class CategoriesService {
     }
 
     category.isActive = false;
+    category.updatedAt = new Date();
+    return category;
+  }
+
+  activate(id: number) {
+    const category = this.findOne(id);
+    if (category.isActive) {
+      throw new ConflictException(`Category with id ${id} is already active`);
+    }
+    category.isActive = true;
     category.updatedAt = new Date();
     return category;
   }

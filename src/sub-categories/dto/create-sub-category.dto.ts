@@ -14,7 +14,8 @@ import { trimTransform } from 'src/common/utils/trim-transform.util';
 export class CreateSubCategoryDto {
   @ApiProperty({
     example: 1,
-    description: 'ID of the parent category where the subcategory will be created',
+    description:
+      'ID of the parent category where the subcategory will be created',
     type: Number,
   })
   @IsInt()

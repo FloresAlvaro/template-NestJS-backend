@@ -57,6 +57,13 @@ export class SubCategoriesController {
     description: 'Filter subcategories by parent category ID',
     example: 1,
   })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: ['active', 'inactive', 'all'],
+    description: 'Filter subcategories by their active status (default: all)',
+    example: 'active',
+  })
   @ApiOkResponse({
     description: 'Subcategories fetched successfully',
     type: SubCategory,
@@ -68,8 +75,9 @@ export class SubCategoriesController {
   findAll(
     @Query('categoryId', new ParseIntPipe({ optional: true }))
     categoryId?: number,
+    @Query('status') status: 'active' | 'inactive' | 'all' = 'all',
   ) {
-    return this.subCategoriesService.findAll(categoryId);
+    return this.subCategoriesService.findAll(categoryId, status);
   }
 
   @Get(':id')
@@ -115,6 +123,30 @@ export class SubCategoriesController {
     @Body() updateSubCategoryDto: UpdateSubCategoryDto,
   ) {
     return this.subCategoriesService.update(id, updateSubCategoryDto);
+  }
+
+  @Patch(':id/activate')
+  @ApiOperation({ summary: 'Activate a subcategory' })
+  @ApiParam({
+    name: 'id',
+    type: Number,
+    description: 'Subcategory ID',
+    example: 1,
+  })
+  @ApiOkResponse({
+    description: 'Subcategory activated successfully',
+    type: SubCategory,
+  })
+  @ApiBadRequestResponse({ description: 'id must be a valid integer' })
+  @ApiNotFoundResponse({
+    description: 'Subcategory or parent category not found',
+  })
+  @ApiConflictResponse({
+    description:
+      'Subcategory is already active, or its parent category is inactive',
+  })
+  activate(@Param('id', ParseIntPipe) id: number) {
+    return this.subCategoriesService.activate(id);
   }
 
   @Delete(':id')

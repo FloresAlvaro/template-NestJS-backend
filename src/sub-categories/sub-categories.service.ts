@@ -57,11 +57,19 @@ export class SubCategoriesService {
     return subCategory;
   }
 
-  findAll(categoryId?: number) {
-    if (categoryId !== undefined) {
-      return this.subCategories.filter((sub) => sub.categoryId === categoryId);
-    }
-    return this.subCategories;
+  findAll(categoryId?: number, status: 'active' | 'inactive' | 'all' = 'all') {
+    return this.subCategories.filter((sub) => {
+      const matchesCategory =
+        categoryId !== undefined ? sub.categoryId === categoryId : true;
+
+      let matchesStatus = true;
+      if (status === 'active') {
+        matchesStatus = sub.isActive === true;
+      } else if (status === 'inactive') {
+        matchesStatus = sub.isActive === false;
+      }
+      return matchesCategory && matchesStatus;
+    });
   }
 
   findOne(id: number) {
@@ -123,10 +131,6 @@ export class SubCategoriesService {
       subCategory.description = updateSubCategoryDto.description;
     }
 
-    if (updateSubCategoryDto.isActive !== undefined) {
-      subCategory.isActive = updateSubCategoryDto.isActive;
-    }
-
     subCategory.updatedAt = new Date();
     return subCategory;
   }
@@ -151,5 +155,26 @@ export class SubCategoriesService {
     return this.subCategories.some(
       (sub) => sub.categoryId === categoryId && sub.isActive,
     );
+  }
+
+  activate(id: number) {
+    const subCategory = this.findOne(id);
+    if (subCategory.isActive) {
+      throw new ConflictException(
+        `Subcategory with id ${id} is already active`,
+      );
+    }
+    // acá va la validación pendiente: que la categoría padre esté activa
+    const parentCategory = this.categoriesService.findOne(
+      subCategory.categoryId,
+    );
+    if (!parentCategory.isActive) {
+      throw new ConflictException(
+        `Cannot activate subcategory ${id} because its parent category is inactive`,
+      );
+    }
+    subCategory.isActive = true;
+    subCategory.updatedAt = new Date();
+    return subCategory;
   }
 }
