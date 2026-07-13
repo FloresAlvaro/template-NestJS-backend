@@ -156,7 +156,14 @@ export class CategoriesController {
     return {
       categoryId: category.categoryId,
       name: category.name,
-      subCategories,
+      subCategories: subCategories.map((sub) => ({
+        subCategoryId: sub.subCategoryId,
+        name: sub.name,
+        description: sub.description,
+        isActive: sub.isActive,
+        createdAt: sub.createdAt,
+        updatedAt: sub.updatedAt,
+      })),
     };
   }
 
