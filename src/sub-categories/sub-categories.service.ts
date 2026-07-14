@@ -58,6 +58,10 @@ export class SubCategoriesService {
   }
 
   findAll(categoryId?: number, status: 'active' | 'inactive' | 'all' = 'all') {
+    if (categoryId !== undefined) {
+      this.categoriesService.findOne(categoryId);
+    }
+
     return this.subCategories.filter((sub) => {
       const matchesCategory =
         categoryId !== undefined ? sub.categoryId === categoryId : true;

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Controller,
   Get,
   Post,
@@ -70,14 +71,30 @@ export class SubCategoriesController {
     isArray: true,
   })
   @ApiBadRequestResponse({
-    description: 'categoryId must be a valid integer when provided',
+    description:
+      'categoryId must be a valid integer when provided, or status must be active, inactive, or all',
+  })
+  @ApiNotFoundResponse({
+    description: 'Parent category not found when categoryId is provided',
   })
   findAll(
     @Query('categoryId', new ParseIntPipe({ optional: true }))
     categoryId?: number,
-    @Query('status') status: 'active' | 'inactive' | 'all' = 'all',
+    @Query('status') status?: string,
   ) {
-    return this.subCategoriesService.findAll(categoryId, status);
+    const normalizedStatus = (status ?? 'all').toLowerCase();
+    const allowedStatuses = ['active', 'inactive', 'all'];
+
+    if (!allowedStatuses.includes(normalizedStatus)) {
+      throw new BadRequestException(
+        'Invalid status filter. Use active, inactive, or all.',
+      );
+    }
+
+    return this.subCategoriesService.findAll(
+      categoryId,
+      normalizedStatus as 'active' | 'inactive' | 'all',
+    );
   }
 
   @Get(':id')
