@@ -7,6 +7,7 @@ import {
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
+import { trimTransform } from 'src/common/utils/trim-transform.util';
 
 export class CreateCategoryDto {
   @ApiProperty({
@@ -18,10 +19,7 @@ export class CreateCategoryDto {
   @IsNotEmpty()
   @MinLength(3, { message: 'Name must be at least 3 characters long' })
   @MaxLength(100, { message: 'Name must not exceed 100 characters' })
-  @Transform(
-    ({ value }) =>
-      (typeof value === 'string' ? value.trim() : value) as string | undefined,
-  )
+  @Transform(trimTransform)
   name!: string;
 
   @ApiProperty({
@@ -33,9 +31,6 @@ export class CreateCategoryDto {
   @IsOptional()
   @IsString()
   @MaxLength(500, { message: 'Description must not exceed 500 characters' })
-  @Transform(
-    ({ value }) =>
-      (typeof value === 'string' ? value.trim() : value) as string | undefined,
-  )
+  @Transform(trimTransform)
   description?: string;
 }

@@ -22,13 +22,17 @@ import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { Category } from './entities/category.entity';
+import { SubCategoriesService } from 'src/sub-categories/sub-categories.service';
 
 type CategoryStatusFilter = 'active' | 'inactive' | 'all';
 
 @ApiTags('Categories')
 @Controller('categories')
 export class CategoriesController {
-  constructor(private readonly categoriesService: CategoriesService) {}
+  constructor(
+    private readonly categoriesService: CategoriesService,
+    private readonly subCategoriesService: SubCategoriesService,
+  ) {}
 
   @Post()
   @ApiOperation({
@@ -117,7 +121,6 @@ export class CategoriesController {
   @ApiResponse({
     status: 400,
     description: 'Invalid category ID',
-    type: Category,
   })
   @ApiResponse({
     status: 404,
@@ -125,6 +128,43 @@ export class CategoriesController {
   })
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.categoriesService.findOne(id);
+  }
+
+  @Get(':id/sub-categories')
+  @ApiOperation({
+    summary: 'Get all subcategories of a category',
+    description: 'Retrieves a category along with its list of subcategories',
+  })
+  @ApiParam({
+    name: 'id',
+    type: 'number',
+    description: 'The unique identifier of the parent category',
+    example: 1,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Category with its subcategories retrieved successfully',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Category not found',
+  })
+  findSubCategories(@Param('id', ParseIntPipe) id: number) {
+    const category = this.categoriesService.findOne(id);
+    const subCategories = this.subCategoriesService.findAll(id);
+
+    return {
+      categoryId: category.categoryId,
+      name: category.name,
+      subCategories: subCategories.map((sub) => ({
+        subCategoryId: sub.subCategoryId,
+        name: sub.name,
+        description: sub.description,
+        isActive: sub.isActive,
+        createdAt: sub.createdAt,
+        updatedAt: sub.updatedAt,
+      })),
+    };
   }
 
   @Patch(':id')
@@ -165,6 +205,34 @@ export class CategoriesController {
     @Body() updateCategoryDto: UpdateCategoryDto,
   ) {
     return this.categoriesService.update(id, updateCategoryDto);
+  }
+
+  @Patch(':id/activate')
+  @ApiOperation({
+    summary: 'Activate a category',
+    description: 'Reactivates a previously deactivated category',
+  })
+  @ApiParam({
+    name: 'id',
+    type: 'number',
+    description: 'The unique identifier of the category to activate',
+    example: 1,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Category activated successfully',
+    type: Category,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Category not found',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Category is already active',
+  })
+  activate(@Param('id', ParseIntPipe) id: number) {
+    return this.categoriesService.activate(id);
   }
 
   @Delete(':id')
