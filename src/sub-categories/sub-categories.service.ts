@@ -112,8 +112,16 @@ export class SubCategoriesService {
     }
 
     if (updateSubCategoryDto.categoryId !== undefined) {
-      // Si permitís mover de padre, hay que validar que el nuevo padre exista
-      this.categoriesService.findOne(updateSubCategoryDto.categoryId);
+      // Validate target category exists and is active
+      const targetCategory = this.categoriesService.findOne(
+        updateSubCategoryDto.categoryId,
+      );
+
+      if (!targetCategory.isActive) {
+        throw new ConflictException(
+          `Cannot move subcategory ${id} to category ${updateSubCategoryDto.categoryId} because it is inactive`,
+        );
+      }
 
       const duplicateSubCategory = this.subCategories.find(
         (sub) =>
@@ -168,7 +176,8 @@ export class SubCategoriesService {
         `Subcategory with id ${id} is already active`,
       );
     }
-    // acá va la validación pendiente: que la categoría padre esté activa
+
+    // Validate parent category is active before activation
     const parentCategory = this.categoriesService.findOne(
       subCategory.categoryId,
     );
