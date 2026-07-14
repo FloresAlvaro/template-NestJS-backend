@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { CreateSubCategoryDto } from './dto/create-sub-category.dto';
 import { UpdateSubCategoryDto } from './dto/update-sub-category.dto';
-import { CategoriesService } from '../categories/categories.service';
+import { CategoriesService } from 'src/categories/categories.service';
 import { SubCategory } from './entities/sub-category.entity';
 
 @Injectable()
@@ -161,8 +161,6 @@ export class SubCategoriesService {
     return subCategory;
   }
 
-  // Método auxiliar para que CategoriesService pueda chequear la regla
-  // "no desactivar categoría padre si tiene subcategorías activas"
   hasActiveSubCategories(categoryId: number): boolean {
     return this.subCategories.some(
       (sub) => sub.categoryId === categoryId && sub.isActive,
