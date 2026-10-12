@@ -21,7 +21,7 @@ export class Category {
     type: String,
     required: false,
   })
-  description?: string;
+  description?: string | null;
 
   @ApiProperty({
     example: true,

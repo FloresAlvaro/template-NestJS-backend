@@ -9,7 +9,7 @@ import {
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { trimTransform } from 'src/common/utils/trim-transform.util';
+import { trimTransform } from '../../common/utils/trim-transform.util';
 
 export class CreateSubCategoryDto {
   @ApiProperty({

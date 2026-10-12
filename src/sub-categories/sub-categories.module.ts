@@ -1,7 +1,7 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { SubCategoriesService } from './sub-categories.service';
 import { SubCategoriesController } from './sub-categories.controller';
-import { CategoriesModule } from 'src/categories/categories.module';
+import { CategoriesModule } from '../categories/categories.module';
 
 @Module({
   imports: [forwardRef(() => CategoriesModule)],

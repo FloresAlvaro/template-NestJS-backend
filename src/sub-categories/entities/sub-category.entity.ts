@@ -20,7 +20,7 @@ export class SubCategory {
     example: 'Refrigerators and freezers',
     description: 'Optional subcategory description',
   })
-  description?: string;
+  description?: string | null;
 
   @ApiProperty({ example: true })
   isActive!: boolean;

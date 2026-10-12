@@ -22,7 +22,7 @@ import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { Category } from './entities/category.entity';
-import { SubCategoriesService } from 'src/sub-categories/sub-categories.service';
+import { SubCategoriesService } from '../sub-categories/sub-categories.service';
 
 type CategoryStatusFilter = 'active' | 'inactive' | 'all';
 
@@ -149,9 +149,9 @@ export class CategoriesController {
     status: 404,
     description: 'Category not found',
   })
-  findSubCategories(@Param('id', ParseIntPipe) id: number) {
-    const category = this.categoriesService.findOne(id);
-    const subCategories = this.subCategoriesService.findAll(id);
+  async findSubCategories(@Param('id', ParseIntPipe) id: number) {
+    const category = await this.categoriesService.findOne(id);
+    const subCategories = await this.subCategoriesService.findAll(id);
 
     return {
       categoryId: category.categoryId,
@@ -171,7 +171,7 @@ export class CategoriesController {
   @ApiOperation({
     summary: 'Update a category',
     description:
-      'Updates a specific category with the provided data (name, description, and/or isActive)',
+      'Updates a specific category with the provided name and/or description',
   })
   @ApiParam({
     name: 'id',

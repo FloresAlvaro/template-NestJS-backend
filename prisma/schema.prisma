@@ -4,22 +4,54 @@
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider     = "prisma-client"
+  output       = "../generated/prisma"
+  moduleFormat = "cjs"
 }
 
 datasource db {
   provider = "postgresql"
 }
 
-model SubCategory {
-  subCategoryId Int      @id @default(autoincrement())
-  categoryId    Int
-  name          String
-  description   String?
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+model Category {
+  categoryId     Int           @id @default(autoincrement())
+  name           String
+  normalizedName String        @unique
+  description    String?
+  isActive       Boolean       @default(true)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  subCategories  SubCategory[]
+}
 
-  @@unique([categoryId, name])
+model SubCategory {
+  subCategoryId  Int       @id @default(autoincrement())
+  categoryId     Int
+  name           String
+  normalizedName String
+  category       Category  @relation(fields: [categoryId], references: [categoryId], onDelete: Restrict)
+  description    String?
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  products       Product[]
+
+  @@unique([categoryId, normalizedName])
+}
+
+model Product {
+  productId     Int         @id @default(autoincrement())
+  subCategoryId Int
+  subCategory   SubCategory @relation(fields: [subCategoryId], references: [subCategoryId], onDelete: Restrict)
+  name          String      @db.VarChar(150)
+  sku           String      @unique @db.VarChar(64)
+  barcode       String?     @unique @db.VarChar(64)
+  description   String?     @db.VarChar(1000)
+  cost          Decimal     @db.Decimal(18, 2)
+  salePrice     Decimal     @db.Decimal(18, 2)
+  isActive      Boolean     @default(true)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([subCategoryId, isActive])
 }

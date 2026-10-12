@@ -2,190 +2,138 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
-  Inject,
-  forwardRef,
 } from '@nestjs/common';
 import { CreateSubCategoryDto } from './dto/create-sub-category.dto';
 import { UpdateSubCategoryDto } from './dto/update-sub-category.dto';
-import { CategoriesService } from 'src/categories/categories.service';
-import { SubCategory } from './entities/sub-category.entity';
+import { CategoriesService } from '../categories/categories.service';
+import { PrismaService } from '../database/prisma.service';
+import { Prisma } from '../../generated/prisma/client';
 
 @Injectable()
 export class SubCategoriesService {
-  private readonly subCategories: SubCategory[] = [];
-  private nextSubCategoryId = 1;
   constructor(
-    @Inject(forwardRef(() => CategoriesService))
-    private readonly categoriesService: CategoriesService,
+    private readonly prisma: PrismaService,
+    private readonly categories: CategoriesService,
   ) {}
 
-  create(createSubCategoryDto: CreateSubCategoryDto) {
-    const parentCategory = this.categoriesService.findOne(
-      createSubCategoryDto.categoryId,
-    );
-
-    if (!parentCategory.isActive) {
-      throw new ConflictException(
-        `Cannot create a subcategory under category ${createSubCategoryDto.categoryId} because it is inactive`,
-      );
-    }
-
-    const duplicateSubCategory = this.subCategories.find(
-      (sub) =>
-        sub.categoryId === createSubCategoryDto.categoryId &&
-        sub.name.toLowerCase() === createSubCategoryDto.name.toLowerCase(),
-    );
-
-    if (duplicateSubCategory) {
-      throw new ConflictException(
-        `A subcategory with the name '${createSubCategoryDto.name}' already exists in this category`,
-      );
-    }
-
-    const now = new Date();
-    const subCategory: SubCategory = {
-      subCategoryId: this.nextSubCategoryId++,
-      categoryId: createSubCategoryDto.categoryId,
-      name: createSubCategoryDto.name,
-      description: createSubCategoryDto.description,
-      isActive: true,
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    this.subCategories.push(subCategory);
-    return subCategory;
-  }
-
-  findAll(categoryId?: number, status: 'active' | 'inactive' | 'all' = 'all') {
-    if (categoryId !== undefined) {
-      this.categoriesService.findOne(categoryId);
-    }
-
-    return this.subCategories.filter((sub) => {
-      const matchesCategory =
-        categoryId !== undefined ? sub.categoryId === categoryId : true;
-
-      let matchesStatus = true;
-      if (status === 'active') {
-        matchesStatus = sub.isActive === true;
-      } else if (status === 'inactive') {
-        matchesStatus = sub.isActive === false;
-      }
-      return matchesCategory && matchesStatus;
+  create(dto: CreateSubCategoryDto) {
+    return this.prisma.catalogWrite(async (tx) => {
+      const category = await this.categories.findOne(dto.categoryId, tx);
+      if (!category.isActive)
+        throw new ConflictException(
+          'Cannot create a subcategory under an inactive category',
+        );
+      const normalizedName = dto.name.toLowerCase();
+      await this.ensureUnique(tx, dto.categoryId, normalizedName);
+      return tx.subCategory.create({
+        data: { ...dto, normalizedName },
+        omit: { normalizedName: true },
+      });
     });
   }
 
-  findOne(id: number) {
-    const subCategory = this.subCategories.find(
-      (sub) => sub.subCategoryId === id,
-    );
-
-    if (!subCategory) {
-      throw new NotFoundException(`Subcategory with id ${id} not found`);
-    }
-
-    return subCategory;
+  async findAll(
+    categoryId?: number,
+    status: 'active' | 'inactive' | 'all' = 'all',
+  ) {
+    if (categoryId !== undefined) await this.categories.findOne(categoryId);
+    return this.prisma.subCategory.findMany({
+      where: {
+        categoryId,
+        ...(status === 'all' ? {} : { isActive: status === 'active' }),
+      },
+      orderBy: { subCategoryId: 'asc' },
+      omit: { normalizedName: true },
+    });
   }
 
-  update(id: number, updateSubCategoryDto: UpdateSubCategoryDto) {
-    const subCategory = this.findOne(id);
+  async findOne(id: number, db: Prisma.TransactionClient = this.prisma) {
+    const sub = await db.subCategory.findUnique({
+      where: { subCategoryId: id },
+      omit: { normalizedName: true },
+    });
+    if (!sub)
+      throw new NotFoundException(`Subcategory with id ${id} not found`);
+    return sub;
+  }
 
-    if (updateSubCategoryDto.name !== undefined) {
-      const targetCategoryId =
-        updateSubCategoryDto.categoryId ?? subCategory.categoryId;
-
-      const duplicateSubCategory = this.subCategories.find(
-        (sub) =>
-          sub.subCategoryId !== subCategory.subCategoryId &&
-          sub.categoryId === targetCategoryId &&
-          sub.name.toLowerCase() === updateSubCategoryDto.name!.toLowerCase(),
+  private async ensureUnique(
+    tx: Prisma.TransactionClient,
+    categoryId: number,
+    normalizedName: string,
+    excludedId?: number,
+  ) {
+    const duplicate = await tx.subCategory.findUnique({
+      where: { categoryId_normalizedName: { categoryId, normalizedName } },
+    });
+    if (duplicate && duplicate.subCategoryId !== excludedId) {
+      throw new ConflictException(
+        'A subcategory with this name already exists in this category',
       );
-
-      if (duplicateSubCategory) {
-        throw new ConflictException(
-          `A subcategory with the name '${updateSubCategoryDto.name}' already exists in this category`,
-        );
-      }
-
-      subCategory.name = updateSubCategoryDto.name;
     }
+  }
 
-    if (updateSubCategoryDto.categoryId !== undefined) {
-      // Validate target category exists and is active
-      const targetCategory = this.categoriesService.findOne(
-        updateSubCategoryDto.categoryId,
-      );
-
-      if (!targetCategory.isActive) {
-        throw new ConflictException(
-          `Cannot move subcategory ${id} to category ${updateSubCategoryDto.categoryId} because it is inactive`,
-        );
+  update(id: number, dto: UpdateSubCategoryDto) {
+    return this.prisma.catalogWrite(async (tx) => {
+      const sub = await this.findOne(id, tx);
+      const categoryId = dto.categoryId ?? sub.categoryId;
+      const normalizedName = (dto.name ?? sub.name).toLowerCase();
+      if (dto.categoryId !== undefined) {
+        const category = await this.categories.findOne(categoryId, tx);
+        if (!category.isActive)
+          throw new ConflictException(
+            'Cannot move a subcategory to an inactive category',
+          );
       }
-
-      const duplicateSubCategory = this.subCategories.find(
-        (sub) =>
-          sub.subCategoryId !== subCategory.subCategoryId &&
-          sub.categoryId === updateSubCategoryDto.categoryId &&
-          sub.name.toLowerCase() === subCategory.name.toLowerCase(),
-      );
-
-      if (duplicateSubCategory) {
-        throw new ConflictException(
-          `A subcategory with the name '${subCategory.name}' already exists in this category`,
-        );
-      }
-
-      subCategory.categoryId = updateSubCategoryDto.categoryId;
-    }
-
-    if (updateSubCategoryDto.description !== undefined) {
-      subCategory.description = updateSubCategoryDto.description;
-    }
-
-    subCategory.updatedAt = new Date();
-    return subCategory;
+      await this.ensureUnique(tx, categoryId, normalizedName, id);
+      // Apply all fields together only after every validation has succeeded.
+      return tx.subCategory.update({
+        where: { subCategoryId: id },
+        data: { ...dto, normalizedName },
+        omit: { normalizedName: true },
+      });
+    });
   }
 
   remove(id: number) {
-    const subCategory = this.findOne(id);
-
-    if (!subCategory.isActive) {
-      throw new ConflictException(
-        `Subcategory with id ${id} is already inactive`,
-      );
-    }
-
-    subCategory.isActive = false;
-    subCategory.updatedAt = new Date();
-    return subCategory;
-  }
-
-  hasActiveSubCategories(categoryId: number): boolean {
-    return this.subCategories.some(
-      (sub) => sub.categoryId === categoryId && sub.isActive,
-    );
+    return this.prisma.catalogWrite(async (tx) => {
+      const sub = await this.findOne(id, tx);
+      if (!sub.isActive)
+        throw new ConflictException(
+          `Subcategory with id ${id} is already inactive`,
+        );
+      if (
+        await tx.product.count({ where: { subCategoryId: id, isActive: true } })
+      ) {
+        throw new ConflictException(
+          'Cannot deactivate a subcategory with active products',
+        );
+      }
+      return tx.subCategory.update({
+        where: { subCategoryId: id },
+        data: { isActive: false },
+        omit: { normalizedName: true },
+      });
+    });
   }
 
   activate(id: number) {
-    const subCategory = this.findOne(id);
-    if (subCategory.isActive) {
-      throw new ConflictException(
-        `Subcategory with id ${id} is already active`,
-      );
-    }
-
-    // Validate parent category is active before activation
-    const parentCategory = this.categoriesService.findOne(
-      subCategory.categoryId,
-    );
-    if (!parentCategory.isActive) {
-      throw new ConflictException(
-        `Cannot activate subcategory ${id} because its parent category is inactive`,
-      );
-    }
-    subCategory.isActive = true;
-    subCategory.updatedAt = new Date();
-    return subCategory;
+    return this.prisma.catalogWrite(async (tx) => {
+      const sub = await this.findOne(id, tx);
+      if (sub.isActive)
+        throw new ConflictException(
+          `Subcategory with id ${id} is already active`,
+        );
+      const category = await this.categories.findOne(sub.categoryId, tx);
+      if (!category.isActive)
+        throw new ConflictException(
+          'Cannot activate a subcategory because its parent category is inactive',
+        );
+      return tx.subCategory.update({
+        where: { subCategoryId: id },
+        data: { isActive: true },
+        omit: { normalizedName: true },
+      });
+    });
   }
 }

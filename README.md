@@ -1,98 +1,113 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Backend de gestión de productos
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+API NestJS con PostgreSQL y Prisma. Actualmente implementa categorías,
+subcategorías, productos y health. Inventario, ventas y autenticación están pendientes.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Configuración
 
-## Description
+Requiere Node.js 22.12+ o 24 y una instancia PostgreSQL. Desde esta carpeta:
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
-## Project setup
-
-```bash
-$ pnpm install
+```powershell
+npm ci
+Copy-Item .env.example .env
+# Editar DATABASE_URL en .env con la conexión de desarrollo.
+npm run prisma:generate
+npm run db:migrate
+npm run start:dev
 ```
 
-## Compile and run the project
+También se incluye `pnpm-lock.yaml` para quienes usan pnpm. Utilizar un solo gestor
+por instalación. La URL de `.env.example` es ilustrativa; no crea la base ni el usuario.
+La aplicación exige `DATABASE_URL` y falla al iniciar si la base no está disponible.
+La migración inicial requiere una base vacía: ver las notas de migración en
+[el diseño de base de datos](docs/database-design.md).
 
-```bash
-# development
-$ pnpm run start
+- API: `http://localhost:3001/api`
+- Swagger: `http://localhost:3001/docs`
+- Health: `GET /api/health` (estado del proceso; no es un chequeo de disponibilidad de BD)
+- CORS de desarrollo: `http://localhost:3000`
 
-# watch mode
-$ pnpm run start:dev
+## Verificación
 
-# production mode
-$ pnpm run start:prod
+```powershell
+npm run build
+npm run test:unit
+npx eslint "src/**/*.ts" "test/**/*.ts"
 ```
 
-## Run tests
+`build` genera el cliente Prisma y compila a `dist`; `npm run start:prod` ejecuta
+`dist/src/main.js`. La carpeta `generated/prisma` se genera, no se versiona.
 
-```bash
-# unit tests
-$ pnpm run test
+### Pruebas con PostgreSQL
 
-# e2e tests
-$ pnpm run test:e2e
+Usar una base separada cuyo nombre termine en `_test`. Por ejemplo:
 
-# test coverage
-$ pnpm run test:cov
+```powershell
+docker run --detach --name tienda-postgres-test --publish 127.0.0.1:55439:5432 --env POSTGRES_USER=tienda_test --env POSTGRES_PASSWORD=tienda_test --env POSTGRES_DB=tienda_test postgres:17-alpine
+$env:TEST_DATABASE_URL = 'postgresql://tienda_test:tienda_test@127.0.0.1:55439/tienda_test'
+$env:DATABASE_URL = $env:TEST_DATABASE_URL
+npm run prisma:generate
+npm run db:migrate
+npm run test:e2e -- --runInBand
+Remove-Item Env:DATABASE_URL
+Remove-Item Env:TEST_DATABASE_URL
+docker stop tienda-postgres-test
 ```
 
-## Deployment
+El test e2e exige `TEST_DATABASE_URL`, nunca reutiliza silenciosamente la conexión
+normal, crea sus propios registros y los elimina al terminar. Comprueba PATCH
+inválidos sin cambios parciales, duplicados, concurrencia, activación, rutas y
+persistencia tras recrear la aplicación. Jest usa VM modules para las importaciones
+dinámicas del cliente Prisma.
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+## Base de datos
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+El esquema ejecutable del catálogo está en [prisma/schema.prisma](prisma/schema.prisma).
+El [diseño documentado](docs/database-design.md) distingue el catálogo implementado
+de la propuesta de inventario y ventas. Productos cuenta con su propia migración.
 
-```bash
-$ pnpm install -g @nestjs/mau
-$ mau deploy
+La API conserva las rutas existentes y las bajas lógicas; una descripción ausente
+se devuelve como `null`. Las rutas todavía no tienen autenticación ni autorización;
+incorporar usuarios y permisos antes de exponer operaciones de gestión públicamente.
+
+## Productos
+
+Ver [el contrato de productos](docs/products-api.md) para ejemplos, filtros,
+formatos monetarios y reglas de activación. `npm run db:migrate` aplica la nueva
+migración de productos sin eliminar el catálogo existente.
+
+## Ejecutar permanentemente con Docker
+
+Desde esta carpeta, con Docker Desktop iniciado:
+
+```powershell
+docker compose up --build -d --wait
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+Compose crea el backend y PostgreSQL en la red interna. No requiere instalar Node
+ni crear un `.env` para esta modalidad. Las credenciales incluidas son exclusivamente
+para desarrollo local; PostgreSQL no publica un puerto en el equipo y el backend
+solo se publica en `127.0.0.1:3001`.
 
-## Resources
+- API: http://localhost:3001/api
+- Swagger: http://localhost:3001/docs
+- Estado: `docker compose ps`
+- Logs: `docker compose logs -f backend`
+- Actualizar después de cambiar el código: `docker compose up --build -d --wait`
+- Detener temporalmente: `docker compose stop`
+- Volver a iniciar después de detenerlo: `docker compose start`
 
-Check out a few resources that may come in handy when working with NestJS:
+Las migraciones se aplican antes de iniciar el backend. La base guarda sus datos
+ en el volumen `tienda-local_postgres_data`, independiente de los contenedores.
+`docker compose down` conserva ese volumen; `docker compose down -v` elimina los
+datos y no debe usarse salvo que se quiera borrar la base local.
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+Ambos servicios usan `restart: unless-stopped`: se reinician al arrancar Docker,
+si no los detuviste manualmente. Para que estén disponibles al iniciar sesión en
+Windows, habilita **Start Docker Desktop when you sign in** en Docker Desktop.
+El equipo y Docker deben estar funcionando para que la API esté disponible.
+No es necesario ejecutar `npm run start:dev` mientras el contenedor está activo.
 
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+Esta modalidad crea una base nueva propia de Docker; no importa automáticamente
+datos de otras instancias PostgreSQL. El código se incluye en la imagen: los cambios
+requieren reconstruirla, no se recargan automáticamente.
