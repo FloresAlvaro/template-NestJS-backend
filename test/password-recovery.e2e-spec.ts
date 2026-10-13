@@ -33,6 +33,8 @@ describe('Password recovery with PostgreSQL and captured SMTP', () => {
   let app: INestApplication<App>;
   let db: PrismaService;
   let userId: number;
+  let adminId: number;
+  let adminCookie: string;
   const email = `recovery-${randomUUID()}@example.test`;
   const original = 'original-password-123';
   const replacement = 'replacement-password-456';
@@ -78,11 +80,34 @@ describe('Password recovery with PostgreSQL and captured SMTP', () => {
         },
       })
     ).userId;
+    adminId = (
+      await db.user.create({
+        data: {
+          name: 'Recovery administrator',
+          email: `admin-${email}`,
+          passwordHash: await hashPassword(original),
+          role: 'ADMIN',
+        },
+      })
+    ).userId;
+    const adminToken = randomBytes(32).toString('hex');
+    await db.session.create({
+      data: {
+        userId: adminId,
+        tokenHash: tokenHash(adminToken),
+        expiresAt: new Date(Date.now() + 600000),
+      },
+    });
+    adminCookie = `tienda_session=${adminToken}`;
   });
   beforeEach(async () => {
     await db.user.update({
       where: { userId },
-      data: { isActive: true, passwordHash: await hashPassword(original) },
+      data: {
+        isActive: true,
+        role: 'SELLER',
+        passwordHash: await hashPassword(original),
+      },
     });
     await db.passwordReset.deleteMany({ where: { userId } });
     const module = await Test.createTestingModule({
@@ -97,6 +122,7 @@ describe('Password recovery with PostgreSQL and captured SMTP', () => {
   });
   afterAll(async () => {
     await db.user.delete({ where: { userId } });
+    await db.user.delete({ where: { userId: adminId } });
     await db.$disconnect();
   });
 
@@ -204,6 +230,102 @@ describe('Password recovery with PostgreSQL and captured SMTP', () => {
     } finally {
       process.env.SMTP_PORT = smtpPort;
     }
+  });
+
+  it.each([{ role: 'ADMIN' }, { isActive: false }])(
+    'revokes pending recovery links on administrative account change %p',
+    async (change) => {
+      const token = await issue();
+      const sessionToken = randomBytes(32).toString('hex');
+      await db.session.create({
+        data: {
+          userId,
+          tokenHash: tokenHash(sessionToken),
+          expiresAt: new Date(Date.now() + 60000),
+        },
+      });
+      await request(app.getHttpServer())
+        .patch(`/api/users/${userId}`)
+        .set('Cookie', adminCookie)
+        .set('Origin', origin)
+        .send(change)
+        .expect(200);
+      expect(await db.passwordReset.count({ where: { userId } })).toBe(0);
+      expect(await db.session.count({ where: { userId } })).toBe(0);
+      await reset(token).expect(400);
+      expect(
+        await verifyPassword(
+          original,
+          (await db.user.findUniqueOrThrow({ where: { userId } })).passwordHash,
+        ),
+      ).toBe(true);
+    },
+  );
+
+  it('rolls back the password, sessions and token if reset fails inside its transaction', async () => {
+    const token = await issue();
+    const sessionToken = randomBytes(32).toString('hex');
+    await db.session.create({
+      data: {
+        userId,
+        tokenHash: tokenHash(sessionToken),
+        expiresAt: new Date(Date.now() + 60000),
+      },
+    });
+    const previous = await db.user.findUniqueOrThrow({ where: { userId } });
+    const sessionsBefore = await db.session.count({ where: { userId } });
+    const auth = app.get(AuthService);
+    const originalMethod = auth.replacePasswordInTransaction.bind(
+      auth,
+    ) as AuthService['replacePasswordInTransaction'];
+    const spy = jest
+      .spyOn(auth, 'replacePasswordInTransaction')
+      .mockImplementationOnce(async (tx, id, hash) => {
+        await originalMethod(tx, id, hash);
+        throw new Error(
+          'Simulated failure after changing password and revoking sessions',
+        );
+      });
+    try {
+      await expect(
+        app.get(PasswordRecoveryService).reset(token, replacement),
+      ).rejects.toThrow('Simulated failure');
+      expect(
+        (await db.user.findUniqueOrThrow({ where: { userId } })).passwordHash,
+      ).toBe(previous.passwordHash);
+      expect(await db.session.count({ where: { userId } })).toBe(
+        sessionsBefore,
+      );
+      expect(
+        (await db.passwordReset.findUniqueOrThrow({ where: { userId } }))
+          .tokenHash,
+      ).toBe(tokenHash(token));
+    } finally {
+      spy.mockRestore();
+    }
+    await reset(token).expect(200);
+  });
+
+  it('does not revoke existing sessions merely by requesting a recovery link', async () => {
+    const raw = randomBytes(32).toString('hex');
+    await db.session.create({
+      data: {
+        userId,
+        tokenHash: tokenHash(raw),
+        expiresAt: new Date(Date.now() + 60000),
+      },
+    });
+    await forgot().expect(200);
+    await request(app.getHttpServer())
+      .get('/api/auth/me')
+      .set('Cookie', `tienda_session=${raw}`)
+      .expect(200);
+    expect(
+      await verifyPassword(
+        original,
+        (await db.user.findUniqueOrThrow({ where: { userId } })).passwordHash,
+      ),
+    ).toBe(true);
   });
 
   it('limits recovery attempts independently of login, including trailing slash paths', async () => {

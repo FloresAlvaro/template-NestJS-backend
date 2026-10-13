@@ -32,6 +32,9 @@ La migración inicial requiere una base vacía: ver las notas de migración en
 
 ## Verificación
 
+Consulta [la guía de pruebas](docs/testing.md) para el alcance de las suites
+unitarias y de integración y los casos de regresión añadidos.
+
 ```powershell
 npm run build
 npm run test:unit
