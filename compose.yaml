@@ -1,6 +1,14 @@
 name: tienda-local
 
 services:
+  mailpit:
+    image: axllent/mailpit:v1.31.5
+    restart: unless-stopped
+    environment:
+      MP_MAX_MESSAGES: "100"
+    ports:
+      - "127.0.0.1:8025:8025"
+      - "127.0.0.1:1025:1025"
   db:
     image: postgres:17-alpine
     restart: unless-stopped
@@ -30,9 +38,17 @@ services:
       PORT: "3001"
       COOKIE_SECURE: "false"
       TRUSTED_ORIGINS: http://localhost:3000,http://localhost:3001
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      SMTP_SECURE: "false"
+      SMTP_REQUIRE_TLS: "false"
+      MAIL_FROM: no-reply@tienda.local
+      PASSWORD_RESET_URL: http://localhost:3001/api/auth/reset-password
     ports:
       - "127.0.0.1:3001:3001"
     depends_on:
+      mailpit:
+        condition: service_started
       db:
         condition: service_healthy
     healthcheck:

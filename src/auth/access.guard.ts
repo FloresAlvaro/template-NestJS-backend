@@ -29,6 +29,10 @@ export class AccessGuard implements CanActivate {
   async canActivate(context: ExecutionContext) {
     const req = context.switchToHttp().getRequest<AuthRequest>();
     const safe = ['GET', 'HEAD', 'OPTIONS'].includes(req.method);
+    const targets = [context.getHandler(), context.getClass()];
+    const recovery =
+      !safe &&
+      this.reflector.getAllAndOverride<boolean>('recoveryThrottle', targets);
     if (!safe) {
       const origins = trustedOrigins(
         this.config.get<string>('TRUSTED_ORIGINS'),
@@ -37,6 +41,7 @@ export class AccessGuard implements CanActivate {
         throw new ForbiddenException('Untrusted request origin');
     }
     if (
+      recovery ||
       ['/api/auth/login', '/api/auth/register'].includes(
         req.path.replace(/\/+$/, ''),
       )
@@ -44,13 +49,12 @@ export class AccessGuard implements CanActivate {
       const now = Date.now();
       for (const [key, value] of this.attempts)
         if (value.until <= now) this.attempts.delete(key);
-      const key = req.ip ?? 'unknown';
+      const key = `${recovery ? 'recovery:' : ''}${req.ip ?? 'unknown'}`;
       const bucket = this.attempts.get(key) ?? { count: 0, until: now + 60000 };
       if (++bucket.count > 10 || this.attempts.size >= 10000)
         throw new HttpException('Too many attempts. Try again later.', 429);
       this.attempts.set(key, bucket);
     }
-    const targets = [context.getHandler(), context.getClass()];
     if (this.reflector.getAllAndOverride<boolean>('public', targets))
       return true;
     const token = readSessionToken(req.headers.cookie);

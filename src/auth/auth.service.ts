@@ -109,13 +109,21 @@ export class AuthService {
       if (!user) throw new NotFoundException('User not found');
       if (expectedHash !== undefined && user.passwordHash !== expectedHash)
         throw new UnauthorizedException('Password changed; try again');
-      await tx.user.update({ where: { userId }, data: { passwordHash } });
-      await tx.session.deleteMany({ where: { userId } });
+      await this.replacePasswordInTransaction(tx, userId, passwordHash);
       return { success: true };
     });
   }
   updateCustomer(userId: number, dto: CustomerProfileDto) {
     return this.db.customer.update({ where: { userId }, data: dto });
+  }
+  async replacePasswordInTransaction(
+    tx: Prisma.TransactionClient,
+    userId: number,
+    passwordHash: string,
+  ) {
+    await tx.user.update({ where: { userId }, data: { passwordHash } });
+    await tx.session.deleteMany({ where: { userId } });
+    await tx.passwordReset.deleteMany({ where: { userId } });
   }
   async customer(userId: number) {
     const profile = await this.db.customer.findUnique({ where: { userId } });

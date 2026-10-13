@@ -63,8 +63,10 @@ export class UsersService {
           where: { userId: id },
           data: { name: dto.name },
         });
-      if (dto.role !== undefined || dto.isActive === false)
+      if (dto.role !== undefined || dto.isActive === false) {
         await tx.session.deleteMany({ where: { userId: id } });
+        await tx.passwordReset.deleteMany({ where: { userId: id } });
+      }
       return tx.user.update({
         where: { userId: id },
         data: dto,
