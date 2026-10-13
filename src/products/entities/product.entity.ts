@@ -1,6 +1,12 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class ProductEntity {
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'Management image endpoint; null if no image exists',
+  })
+  imageUrl!: string | null;
   @ApiProperty({ example: 0, minimum: 0 })
   quantity!: number;
   @ApiProperty({ example: 0, minimum: 0 })

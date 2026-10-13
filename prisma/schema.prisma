@@ -40,6 +40,7 @@ model SubCategory {
 }
 
 model Product {
+  image          ProductImage?
   saleItems      SaleItem[]
   inventory      Inventory?
   stockMovements StockMovement[]
@@ -59,6 +60,13 @@ model Product {
   @@index([subCategoryId, isActive])
 }
 
+model ProductImage {
+  productId Int      @id
+  product   Product  @relation(fields: [productId], references: [productId], onDelete: Cascade)
+  content   Bytes
+  updatedAt DateTime @updatedAt
+}
+
 enum Role {
   ADMIN
   SELLER
@@ -66,6 +74,7 @@ enum Role {
 }
 
 model User {
+  passwordReset  PasswordReset?
   saleOperations SaleOperation[]
   sales          Sale[]
   stockMovements StockMovement[]
@@ -79,6 +88,16 @@ model User {
   updatedAt      DateTime        @updatedAt
   sessions       Session[]
   customer       Customer?
+}
+
+model PasswordReset {
+  tokenHash String   @id @db.VarChar(64)
+  userId    Int      @unique
+  user      User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt])
 }
 
 model Inventory {

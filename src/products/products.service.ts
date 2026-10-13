@@ -19,10 +19,13 @@ export class ProductsService {
   private serialize(
     product: Product & {
       inventory: { quantity: number; minStock: number } | null;
+      image: { productId: number } | null;
     },
   ) {
+    const { image, ...fields } = product;
     return {
-      ...serializePrice(withStock(product)),
+      ...serializePrice(withStock(fields)),
+      imageUrl: image ? `/api/products/${product.productId}/image` : null,
       cost: product.cost.toFixed(2),
     };
   }
@@ -61,7 +64,7 @@ export class ProductsService {
   private async requireProduct(tx: Prisma.TransactionClient, id: number) {
     const product = await tx.product.findUnique({
       where: { productId: id },
-      include: { inventory: true },
+      include: { inventory: true, image: { select: { productId: true } } },
     });
     if (!product)
       throw new NotFoundException(`Product with id ${id} not found`);
@@ -75,7 +78,7 @@ export class ProductsService {
       return this.serialize(
         await tx.product.create({
           data: { ...dto, inventory: { create: {} } },
-          include: { inventory: true },
+          include: { inventory: true, image: { select: { productId: true } } },
         }),
       );
     });
@@ -134,7 +137,7 @@ export class ProductsService {
     const [items, total] = await this.prisma.$transaction(
       [
         this.prisma.product.findMany({
-          include: { inventory: true },
+          include: { inventory: true, image: { select: { productId: true } } },
           where,
           orderBy: { productId: 'asc' },
           skip: (page - 1) * limit,
@@ -169,7 +172,7 @@ export class ProductsService {
         await tx.product.update({
           where: { productId: id },
           data: dto,
-          include: { inventory: true },
+          include: { inventory: true, image: { select: { productId: true } } },
         }),
       );
     });
@@ -183,7 +186,7 @@ export class ProductsService {
       return this.serialize(
         await tx.product.update({
           where: { productId: id },
-          include: { inventory: true },
+          include: { inventory: true, image: { select: { productId: true } } },
           data: { isActive: false },
         }),
       );
@@ -199,7 +202,7 @@ export class ProductsService {
       return this.serialize(
         await tx.product.update({
           where: { productId: id },
-          include: { inventory: true },
+          include: { inventory: true, image: { select: { productId: true } } },
           data: { isActive: true },
         }),
       );

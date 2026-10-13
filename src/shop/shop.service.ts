@@ -3,7 +3,9 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { serializePrice } from '../common/utils/serialize-price';
+import type { Prisma } from '../../generated/prisma/client';
 const select = {
+  image: { select: { productId: true } },
   inventory: { select: { quantity: true, minStock: true } },
   productId: true,
   name: true,
@@ -12,6 +14,15 @@ const select = {
   salePrice: true,
   subCategoryId: true,
 } as const;
+function serialize(
+  product: Prisma.ProductGetPayload<{ select: typeof select }>,
+) {
+  const { image, ...fields } = product;
+  return {
+    ...serializePrice(withStock(fields)),
+    imageUrl: image ? `/api/shop/products/${product.productId}/image` : null,
+  };
+}
 const where = {
   isActive: true,
   subCategory: { isActive: true, category: { isActive: true } },
@@ -32,7 +43,7 @@ export class ShopService {
       this.db.product.count({ where }),
     ]);
     return {
-      items: items.map((p) => serializePrice(withStock(p))),
+      items: items.map(serialize),
       total,
       page: dto.page,
       limit: dto.limit,
@@ -44,6 +55,6 @@ export class ShopService {
       select,
     });
     if (!product) throw new NotFoundException('Product not found');
-    return serializePrice(withStock(product));
+    return serialize(product);
   }
 }

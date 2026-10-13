@@ -7,9 +7,11 @@ Al revisar el repositorio solo existía `prisma/schema.prisma`, con una tabla
 migraciones ni un diseño de productos, inventario o ventas. Los servicios guardaban
 sus datos en memoria.
 
-Ahora el catálogo tiene persistencia PostgreSQL mediante Prisma y una migración
-inicial versionada y una segunda migración para productos. Inventario, movimientos,
-usuarios, clientes, ventas y pagos siguen siendo una propuesta sin implementar.
+Actualmente están implementados catálogo, inventario, movimientos, usuarios,
+sesiones, clientes, ventas y operaciones de cobro, reembolso, devolución y anulación,
+con persistencia PostgreSQL y migraciones versionadas. El esquema Prisma y las
+migraciones son la referencia vigente. La propuesta histórica que aparece más
+abajo no describe todos los modelos actuales ni debe usarse como lista de pendientes.
 
 ## Catálogo implementado
 
@@ -55,13 +57,20 @@ erDiagram
 - Las escrituras del catálogo validan y modifican dentro de una transacción.
   Un advisory lock de PostgreSQL serializa estas escrituras entre instancias del
   backend para evitar carreras entre bajas, altas, movimientos y activaciones.
-  Es una solución sencilla para este catálogo pequeño: las futuras ventas no
-  deben usar este bloqueo global. Las escrituras externas deben respetar las
+  Las ventas, el inventario y el catálogo comparten este bloqueo mediante
+  `PrismaService.catalogWrite`. Las escrituras externas deben respetar las
   mismas reglas; la restricción de padre activo se aplica en el servicio.
 - Los PATCH rechazan `null` en `name` y `categoryId`. `description: null` permite
   limpiar una descripción. Las respuestas usan `null` para descripciones ausentes.
 
-## Propuesta para inventario y ventas
+## Propuesta histórica para inventario y ventas
+
+Esta sección conserva el diseño inicial, no el contrato vigente. En el modelo
+actual una venta requiere cliente; no hay borradores, moneda configurable,
+impuestos ni descuentos. Los cobros y reembolsos son `SaleOperation`, no una tabla
+`Payment`, y sus estados se calculan a partir de las operaciones. Consulta
+[clientes y ventas](customers-sales-api.md), [operaciones](sale-operations-api.md)
+y [permisos y pendientes](permissions-and-backlog.md).
 
 Supuestos iniciales: una tienda, cantidades enteras y una moneda configurable.
 Antes de implementar productos por peso, sucursales o varias monedas, ajustar esos

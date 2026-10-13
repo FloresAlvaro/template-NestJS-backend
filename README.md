@@ -16,8 +16,9 @@ npm run db:migrate
 npm run start:dev
 ```
 
-También se incluye `pnpm-lock.yaml` para quienes usan pnpm. Utilizar un solo gestor
-por instalación. La URL de `.env.example` es ilustrativa; no crea la base ni el usuario.
+La instalación validada usa npm y `package-lock.json`, también en Docker.
+El `pnpm-lock.yaml` histórico no incluye las correcciones de seguridad actuales;
+no usarlo para reproducir esta instalación. La URL de `.env.example` es ilustrativa; no crea la base ni el usuario.
 La aplicación exige `DATABASE_URL` y falla al iniciar si la base no está disponible.
 La migración inicial requiere una base vacía: ver las notas de migración en
 [el diseño de base de datos](docs/database-design.md).
@@ -26,6 +27,8 @@ La migración inicial requiere una base vacía: ver las notas de migración en
 - Swagger: `http://localhost:3001/docs`
 - Health: `GET /api/health` (estado del proceso; no es un chequeo de disponibilidad de BD)
 - CORS de desarrollo: `http://localhost:3000`
+- Recuperar contraseña: `http://localhost:3001/api/auth/reset-password`
+- Buzón local Mailpit: `http://localhost:8025` (captura mensajes, no envía a Internet)
 
 ## Verificación
 
@@ -44,6 +47,9 @@ Usar una base separada cuyo nombre termine en `_test`. Por ejemplo:
 
 ```powershell
 docker run --detach --name tienda-postgres-test --publish 127.0.0.1:55439:5432 --env POSTGRES_USER=tienda_test --env POSTGRES_PASSWORD=tienda_test --env POSTGRES_DB=tienda_test postgres:17-alpine
+docker run --detach --name tienda-mailpit-test --publish 127.0.0.1:11025:1025 --publish 127.0.0.1:18025:8025 axllent/mailpit:v1.31.5
+$env:TEST_MAILPIT_URL = 'http://127.0.0.1:18025'
+$env:TEST_SMTP_PORT = '11025'
 $env:TEST_DATABASE_URL = 'postgresql://tienda_test:tienda_test@127.0.0.1:55439/tienda_test'
 $env:DATABASE_URL = $env:TEST_DATABASE_URL
 npm run prisma:generate
@@ -51,7 +57,10 @@ npm run db:migrate
 npm run test:e2e -- --runInBand
 Remove-Item Env:DATABASE_URL
 Remove-Item Env:TEST_DATABASE_URL
+Remove-Item Env:TEST_MAILPIT_URL
+Remove-Item Env:TEST_SMTP_PORT
 docker stop tienda-postgres-test
+docker stop tienda-mailpit-test
 ```
 
 El test e2e exige `TEST_DATABASE_URL`, nunca reutiliza silenciosamente la conexión
@@ -63,12 +72,12 @@ dinámicas del cliente Prisma.
 ## Base de datos
 
 El esquema ejecutable del catálogo está en [prisma/schema.prisma](prisma/schema.prisma).
-El [diseño documentado](docs/database-design.md) distingue el catálogo implementado
-de la propuesta de inventario y ventas. Productos cuenta con su propia migración.
+El [diseño documentado](docs/database-design.md) distingue la implementación vigente
+de las propuestas históricas. Cada cambio de esquema tiene su propia migración.
 
 La API conserva las rutas existentes y las bajas lógicas; una descripción ausente
-se devuelve como `null`. Las rutas todavía no tienen autenticación ni autorización;
-incorporar usuarios y permisos antes de exponer operaciones de gestión públicamente.
+se devuelve como `null`. Las rutas de gestión usan autenticación por sesión y
+autorización por rol mediante AccessGuard global.
 
 ## Productos
 
@@ -125,7 +134,12 @@ Se agregaron User, Session y Customer. Customer.userId es opcional y único: per
 | Editar nombre y contraseña propia | Sí | Sí | Cliente autenticado |
 | Editar documento/teléfono propio | No | No | Cliente autenticado |
 
-La recuperación de contraseña por correo y las compras de autoservicio siguen pendientes. Un administrador puede restablecer contraseñas desde Usuarios. Las imágenes de productos siguen pendientes.
+La recuperación de contraseña local está disponible con [Mailpit y formulario independiente](docs/password-recovery-api.md).
+Las compras de autoservicio siguen pendientes. Un administrador también puede restablecer contraseñas desde Usuarios.
+Ya hay [imágenes de productos](docs/product-images-api.md), una por producto,
+y [reportes de ventas e inventario](docs/reports-api.md) para ADMIN.
+Las pantallas frontend de estas funciones todavía requieren integración.
+Las opciones para el siguiente paso están en [recuperación de contraseña](docs/password-recovery-options.md).
 
 ### Primer administrador
 
@@ -204,7 +218,12 @@ a un cobro. Consulta [las operaciones de venta](docs/sale-operations-api.md).
 
 Las contraseñas usan scrypt con sal aleatoria. Las sesiones duran 12 horas y se almacenan como hashes en PostgreSQL; la cookie `tienda_session` es HttpOnly y SameSite=Lax. Cerrar sesión elimina la sesión del servidor. Cambiar/restablecer contraseña, cambiar rol o desactivar una cuenta revoca sus sesiones. No se puede desactivar o degradar la propia cuenta administradora ni dejar el sistema sin administrador activo.
 
-Todas las rutas requieren sesión y permisos salvo health, registro, login y `/api/shop/products`. El registro público siempre crea CUSTOMER; enviar un rol adicional se rechaza. Las escrituras requieren Origin incluido en TRUSTED_ORIGINS. Clientes HTTP como Postman también deben enviar este encabezado. Las consultas de perfil usan el usuario autenticado y no aceptan un userId externo.
+Todas las rutas requieren sesión y permisos salvo health, registro, login,
+recuperación de contraseña y el catálogo público `/api/shop/products` con sus imágenes.
+El registro público siempre crea CUSTOMER; enviar un rol adicional se rechaza.
+Las escrituras requieren Origin incluido en TRUSTED_ORIGINS. Clientes HTTP como
+Postman también deben enviar este encabezado. Las consultas de perfil usan el
+usuario autenticado y no aceptan un userId externo.
 
 `TRUSTED_ORIGINS` contiene orígenes separados por comas, sin barra final. En despliegue configura el origen HTTPS real y `COOKIE_SECURE=true`. Compose usa `COOKIE_SECURE=false` exclusivamente para localhost HTTP. Nuxt usa un proxy del mismo origen hacia este backend. Login y registro admiten 10 intentos/minuto por dirección de conexión; el límite es local a cada proceso y, detrás del proxy Nuxt, se comparte por su conexión. Para múltiples instancias o publicación utiliza un límite centralizado en el proxy de confianza. No habilitar trust proxy sin restringir el acceso directo.
 
@@ -212,9 +231,13 @@ Todas las rutas requieren sesión y permisos salvo health, registro, login y `/a
 
 Con TEST_DATABASE_URL apuntando a una base independiente terminada en `_test`, ejecuta `npm run test:e2e -- --runInBand`. Incluye autenticación real, acceso por rol, ocultamiento de costos, aislamiento de perfil, revocación y catálogo público activo. Las suites del catálogo sustituyen el guard para probar separadamente sus reglas de negocio.
 
-### Dependencias pendientes de revisión
+### Dependencias y revisión de permisos
 
-La auditoría de dependencias de producción del 12/10/2026 reportó 16 alertas (6 moderadas, 9 altas y 1 crítica), entre ellas proxy-addr, dependencias de Prisma CLI, multer y js-yaml. No se realizó una actualización masiva de versiones como parte de autenticación. Revisar y corregir estas dependencias antes de publicar; una alerta de paquete no confirma por sí sola que una ruta sea explotable. El backend no habilita trust proxy ni ofrece carga de archivos actualmente.
+La revisión del 13/10/2026 actualizó las dependencias compatibles y eliminó los
+hallazgos críticos. Consulta las versiones, excepciones y avisos restantes en
+[seguridad de dependencias](docs/dependency-security.md).
+La matriz de acceso de las 49 rutas, sus comprobaciones y las funcionalidades
+pendientes están en [permisos y pendientes](docs/permissions-and-backlog.md).
 
 ## Código compartido
 
