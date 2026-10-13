@@ -1,3 +1,5 @@
+import { AccessGuard } from '../src/auth/access.guard';
+import { allowAdmin } from './allow-admin';
 import { Test } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
@@ -32,7 +34,10 @@ describe('Catalog API (PostgreSQL)', () => {
   async function openApp() {
     const module = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .overrideProvider(AccessGuard)
+      .useValue(allowAdmin)
+      .compile();
     const instance = module.createNestApplication<INestApplication<App>>();
     configureApp(instance);
     await instance.init();

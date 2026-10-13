@@ -22,7 +22,8 @@
     "prisma:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
     "db:migrate:dev": "prisma migrate dev",
-    "test:unit": "jest --runInBand"
+    "test:unit": "jest --runInBand",
+    "admin:create": "node scripts/create-admin.cjs"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

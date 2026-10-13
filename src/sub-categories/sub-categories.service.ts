@@ -1,4 +1,8 @@
 import {
+  activeStatusWhere,
+  type StatusFilter,
+} from '../common/utils/status-filter';
+import {
   Injectable,
   NotFoundException,
   ConflictException,
@@ -32,15 +36,12 @@ export class SubCategoriesService {
     });
   }
 
-  async findAll(
-    categoryId?: number,
-    status: 'active' | 'inactive' | 'all' = 'all',
-  ) {
+  async findAll(categoryId?: number, status: StatusFilter = 'all') {
     if (categoryId !== undefined) await this.categories.findOne(categoryId);
     return this.prisma.subCategory.findMany({
       where: {
         categoryId,
-        ...(status === 'all' ? {} : { isActive: status === 'active' }),
+        ...activeStatusWhere(status),
       },
       orderBy: { subCategoryId: 'asc' },
       omit: { normalizedName: true },

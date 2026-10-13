@@ -28,6 +28,8 @@ services:
     environment:
       DATABASE_URL: postgresql://tienda:tienda_local@db:5432/tienda?schema=public
       PORT: "3001"
+      COOKIE_SECURE: "false"
+      TRUSTED_ORIGINS: http://localhost:3000,http://localhost:3001
     ports:
       - "127.0.0.1:3001:3001"
     depends_on:
@@ -47,3 +49,4 @@ services:
 
 volumes:
   postgres_data:
+

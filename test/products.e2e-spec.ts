@@ -1,3 +1,5 @@
+import { AccessGuard } from '../src/auth/access.guard';
+import { allowAdmin } from './allow-admin';
 import { Test } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import { App } from 'supertest/types';
@@ -57,7 +59,10 @@ describe('Products API (PostgreSQL)', () => {
   beforeAll(async () => {
     const module = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .overrideProvider(AccessGuard)
+      .useValue(allowAdmin)
+      .compile();
     app = module.createNestApplication<INestApplication<App>>();
     configureApp(app);
     await app.init();
@@ -299,7 +304,10 @@ describe('Products API (PostgreSQL)', () => {
     const product = await create();
     const module = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .overrideProvider(AccessGuard)
+      .useValue(allowAdmin)
+      .compile();
     const fresh = module.createNestApplication<INestApplication<App>>();
     configureApp(fresh);
     try {

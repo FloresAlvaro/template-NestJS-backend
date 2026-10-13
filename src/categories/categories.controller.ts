@@ -1,5 +1,5 @@
+import { parseStatusFilter } from '../common/utils/status-filter';
 import {
-  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -23,8 +23,6 @@ import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { Category } from './entities/category.entity';
 import { SubCategoriesService } from '../sub-categories/sub-categories.service';
-
-type CategoryStatusFilter = 'active' | 'inactive' | 'all';
 
 @ApiTags('Categories')
 @Controller('categories')
@@ -84,22 +82,7 @@ export class CategoriesController {
     description: 'Invalid status filter',
   })
   findAll(@Query('status') status?: string) {
-    const normalizedStatus = (status ?? 'all').toLowerCase();
-    const allowedStatuses: CategoryStatusFilter[] = [
-      'active',
-      'inactive',
-      'all',
-    ];
-
-    if (!allowedStatuses.includes(normalizedStatus as CategoryStatusFilter)) {
-      throw new BadRequestException(
-        'Invalid status filter. Use active, inactive, or all.',
-      );
-    }
-
-    return this.categoriesService.findAll(
-      normalizedStatus as CategoryStatusFilter,
-    );
+    return this.categoriesService.findAll(parseStatusFilter(status));
   }
 
   @Get(':id')

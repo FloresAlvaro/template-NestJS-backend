@@ -1,3 +1,4 @@
+import { ShopModule } from './shop/shop.module';
 import { Module } from '@nestjs/common';
 import { HealthModule } from './health/health.module';
 import { ConfigModule } from '@nestjs/config';
@@ -5,6 +6,8 @@ import { CategoriesModule } from './categories/categories.module';
 import { SubCategoriesModule } from './sub-categories/sub-categories.module';
 import { DatabaseModule } from './database/database.module';
 import { ProductsModule } from './products/products.module';
+import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -16,6 +19,9 @@ import { ProductsModule } from './products/products.module';
     CategoriesModule,
     SubCategoriesModule,
     ProductsModule,
+    AuthModule,
+    UsersModule,
+    ShopModule,
   ],
   controllers: [],
   providers: [],

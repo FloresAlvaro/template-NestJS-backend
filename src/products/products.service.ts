@@ -1,3 +1,5 @@
+import { serializePrice } from '../common/utils/serialize-price';
+import { activeStatusWhere } from '../common/utils/status-filter';
 import {
   ConflictException,
   Injectable,
@@ -15,9 +17,8 @@ export class ProductsService {
 
   private serialize(product: Product) {
     return {
-      ...product,
+      ...serializePrice(product),
       cost: product.cost.toFixed(2),
-      salePrice: product.salePrice.toFixed(2),
     };
   }
 
@@ -79,7 +80,7 @@ export class ProductsService {
     }
     const where: Prisma.ProductWhereInput = {
       subCategoryId,
-      ...(status === 'all' ? {} : { isActive: status === 'active' }),
+      ...activeStatusWhere(status),
     };
     const [items, total] = await this.prisma.$transaction(
       [

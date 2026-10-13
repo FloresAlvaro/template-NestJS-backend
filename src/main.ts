@@ -1,3 +1,4 @@
+import { trustedOrigins } from './config-origins';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { configureApp } from './configure-app';
@@ -9,7 +10,8 @@ async function bootstrap() {
   app.enableShutdownHooks();
 
   app.enableCors({
-    origin: 'http://localhost:3000',
+    origin: trustedOrigins(process.env.TRUSTED_ORIGINS),
+    credentials: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
   });
 
@@ -17,6 +19,7 @@ async function bootstrap() {
     .setTitle('Template Backend')
     .setDescription('API documentation for the Template Backend')
     .setVersion('1.0')
+    .addCookieAuth('tienda_session')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

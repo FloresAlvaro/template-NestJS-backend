@@ -111,3 +111,52 @@ No es necesario ejecutar `npm run start:dev` mientras el contenedor está activo
 Esta modalidad crea una base nueva propia de Docker; no importa automáticamente
 datos de otras instancias PostgreSQL. El código se incluye en la imagen: los cambios
 requieren reconstruirla, no se recargan automáticamente.
+
+## Usuarios, autenticación y permisos
+
+Se agregaron User, Session y Customer. Customer.userId es opcional y único: permite contactos comerciales sin cuenta; registrarse crea una cuenta CUSTOMER con perfil asociado. Los roles actuales son ADMIN, SELLER y CUSTOMER.
+
+| Operación | Administrador | Vendedor | Cliente / visitante |
+| --- | --- | --- | --- |
+| Leer catálogo de gestión | Sí, incluye costos | Sí, sin costos | No |
+| Modificar catálogo | Sí | No | No |
+| Administrar usuarios y restablecer contraseñas | Sí | No | No |
+| Consultar catálogo público activo | Sí | Sí | Sí |
+| Editar nombre y contraseña propia | Sí | Sí | Cliente autenticado |
+| Editar documento/teléfono propio | No | No | Cliente autenticado |
+
+No se han añadido todavía ventas, historial de compras, inventario ni recuperación por correo. Un administrador puede restablecer contraseñas desde Usuarios. Las imágenes de productos siguen pendientes.
+
+### Primer administrador
+
+Desde este directorio, con Docker iniciado:
+
+```powershell
+docker compose exec backend node scripts/create-admin.cjs
+```
+
+El comando solicita nombre, correo y contraseña sin mostrarla. Solo funciona si todavía no existe un administrador. No hay credenciales predeterminadas. Después abre http://localhost:3000/login y crea otros usuarios desde Usuarios. Fuera de Docker: aplica migraciones, ejecuta `npm run build` y `npm run admin:create` con DATABASE_URL configurada.
+
+### Sesiones y configuración
+
+Las contraseñas usan scrypt con sal aleatoria. Las sesiones duran 12 horas y se almacenan como hashes en PostgreSQL; la cookie `tienda_session` es HttpOnly y SameSite=Lax. Cerrar sesión elimina la sesión del servidor. Cambiar/restablecer contraseña, cambiar rol o desactivar una cuenta revoca sus sesiones. No se puede desactivar o degradar la propia cuenta administradora ni dejar el sistema sin administrador activo.
+
+Todas las rutas requieren sesión y permisos salvo health, registro, login y `/api/shop/products`. El registro público siempre crea CUSTOMER; enviar un rol adicional se rechaza. Las escrituras requieren Origin incluido en TRUSTED_ORIGINS. Clientes HTTP como Postman también deben enviar este encabezado. Las consultas de perfil usan el usuario autenticado y no aceptan un userId externo.
+
+`TRUSTED_ORIGINS` contiene orígenes separados por comas, sin barra final. En despliegue configura el origen HTTPS real y `COOKIE_SECURE=true`. Compose usa `COOKIE_SECURE=false` exclusivamente para localhost HTTP. Nuxt usa un proxy del mismo origen hacia este backend. Login y registro admiten 10 intentos/minuto por dirección de conexión; el límite es local a cada proceso y, detrás del proxy Nuxt, se comparte por su conexión. Para múltiples instancias o publicación utiliza un límite centralizado en el proxy de confianza. No habilitar trust proxy sin restringir el acceso directo.
+
+### Pruebas
+
+Con TEST_DATABASE_URL apuntando a una base independiente terminada en `_test`, ejecuta `npm run test:e2e -- --runInBand`. Incluye autenticación real, acceso por rol, ocultamiento de costos, aislamiento de perfil, revocación y catálogo público activo. Las suites del catálogo sustituyen el guard para probar separadamente sus reglas de negocio.
+
+### Dependencias pendientes de revisión
+
+La auditoría de dependencias de producción del 12/10/2026 reportó 16 alertas (6 moderadas, 9 altas y 1 crítica), entre ellas proxy-addr, dependencias de Prisma CLI, multer y js-yaml. No se realizó una actualización masiva de versiones como parte de autenticación. Revisar y corregir estas dependencias antes de publicar; una alerta de paquete no confirma por sí sola que una ruta sea explotable. El backend no habilita trust proxy ni ofrece carga de archivos actualmente.
+
+## Código compartido
+
+La validación de paginación se encuentra en `src/common/dto/pagination.dto.ts`; productos, usuarios y catálogo público usan los mismos límites. Los filtros de estado y la validación de IDs se encuentran en `src/common`. Las consultas públicas del catálogo están separadas en ShopModule/ShopService.
+
+AuthService centraliza la creación de cuentas y el reemplazo de contraseñas con revocación de sesiones. El registro público fija CUSTOMER; el controlador de usuarios mantiene la autorización de administrador. `session-cookie.ts` contiene el nombre y la lectura validada de la cookie; `config-origins.ts` comparte la configuración entre CORS y la protección de escrituras.
+
+Las reglas de desactivación, cambios de padre y unicidad de categorías, subcategorías y productos permanecen en sus servicios porque tienen restricciones distintas. No se añadió un CRUD genérico que esconda estas reglas ni se modificó el esquema de la base de datos.

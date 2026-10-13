@@ -13,6 +13,8 @@ COPY --from=build --chown=node:node /app/node_modules ./node_modules
 COPY --from=build --chown=node:node /app/dist ./dist
 COPY --from=build --chown=node:node /app/prisma ./prisma
 COPY --from=build --chown=node:node /app/prisma.config.ts ./prisma.config.ts
+COPY --from=build --chown=node:node /app/scripts ./scripts
 USER node
 EXPOSE 3001
 CMD ["sh", "-c", "node node_modules/prisma/build/index.js migrate deploy && exec node dist/src/main.js"]
+

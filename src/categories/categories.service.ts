@@ -1,4 +1,8 @@
 import {
+  activeStatusWhere,
+  type StatusFilter,
+} from '../common/utils/status-filter';
+import {
   Injectable,
   NotFoundException,
   ConflictException,
@@ -27,9 +31,9 @@ export class CategoriesService {
     });
   }
 
-  findAll(status: 'active' | 'inactive' | 'all' = 'all') {
+  findAll(status: StatusFilter = 'all') {
     return this.prisma.category.findMany({
-      where: status === 'all' ? {} : { isActive: status === 'active' },
+      where: activeStatusWhere(status),
       orderBy: { categoryId: 'asc' },
       omit: { normalizedName: true },
     });

@@ -1,8 +1,9 @@
+import { PaginationDto } from '../../common/dto/pagination.dto';
 import { Type } from 'class-transformer';
 import { IsIn, IsInt, IsOptional, Max, Min } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
-export class ListProductsDto {
+export class ListProductsDto extends PaginationDto {
   @ApiPropertyOptional({ enum: ['active', 'inactive', 'all'], default: 'all' })
   @IsOptional()
   @IsIn(['active', 'inactive', 'all'])
@@ -15,18 +16,4 @@ export class ListProductsDto {
   @Min(1)
   @Max(2147483647)
   subCategoryId?: number;
-
-  @ApiPropertyOptional({ default: 1 })
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @Max(1000000)
-  page = 1;
-
-  @ApiPropertyOptional({ default: 20, maximum: 100 })
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @Max(100)
-  limit = 20;
 }

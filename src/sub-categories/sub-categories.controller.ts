@@ -1,5 +1,5 @@
+import { parseStatusFilter } from '../common/utils/status-filter';
 import {
-  BadRequestException,
   Controller,
   Get,
   Post,
@@ -82,18 +82,9 @@ export class SubCategoriesController {
     categoryId?: number,
     @Query('status') status?: string,
   ) {
-    const normalizedStatus = (status ?? 'all').toLowerCase();
-    const allowedStatuses = ['active', 'inactive', 'all'];
-
-    if (!allowedStatuses.includes(normalizedStatus)) {
-      throw new BadRequestException(
-        'Invalid status filter. Use active, inactive, or all.',
-      );
-    }
-
     return this.subCategoriesService.findAll(
       categoryId,
-      normalizedStatus as 'active' | 'inactive' | 'all',
+      parseStatusFilter(status),
     );
   }
 
