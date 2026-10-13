@@ -1,5 +1,8 @@
 # Pruebas del backend
 
+Consulta también [el diagrama de ejecución de pruebas](flowcharts.md#8-cómo-funcionan-las-pruebas)
+y los flujos de negocio que verifican estas suites.
+
 La ampliación del 13/10/2026 añade 45 casos unitarios y 15 de integración:
 el resultado validado es **59 unitarios en 6 suites** y **97 de integración en
 8 suites**. Son conteos de casos, no porcentajes de cobertura.

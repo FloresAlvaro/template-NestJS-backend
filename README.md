@@ -3,6 +3,9 @@
 API NestJS con PostgreSQL y Prisma. Actualmente implementa categorías,
 subcategorías, productos, inventario, clientes, ventas, cobros y autenticación.
 
+Para entender su funcionamiento, consulta los [diagramas de flujo](docs/flowcharts.md)
+de permisos, ventas, recuperación de contraseña, imágenes, reportes y pruebas.
+
 ## Configuración
 
 Requiere Node.js 22.12+ o 24 y una instancia PostgreSQL. Desde esta carpeta:
