@@ -1,5 +1,9 @@
 # Inventario
 
+Ver [UML de catálogo e inventario](diagrams/uml-classes.md#catalogo-inventario),
+[secuencia de confirmación de pedidos](diagrams/uml-sequences.md#confirmar-entregar)
+y el [índice de diagramas](diagrams/README.md).
+
 Cada producto tiene un inventario de unidades enteras no negativas y un stock
 mínimo. La migración crea inventarios en cero para los productos existentes.
 Los productos creados desde la API empiezan en cero. El seed incluye cantidades

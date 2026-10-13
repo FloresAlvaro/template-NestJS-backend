@@ -1,5 +1,10 @@
 # Recuperación de contraseña local
 
+Ver [flujo de solicitud](flowcharts.md#4-solicitar-recuperación-de-contraseña),
+[flujo de confirmación](flowcharts.md#5-confirmar-una-nueva-contraseña),
+[UML de usuarios y sesiones](diagrams/uml-classes.md#usuarios-sesiones)
+y el [índice de diagramas](diagrams/README.md).
+
 Implementada con SMTP mediante Nodemailer y Mailpit 1.31.5. Mailpit captura los
 correos en localhost; no entrega mensajes a direcciones reales ni requiere cuenta
 de correo o dominio. No hay relay externo configurado.

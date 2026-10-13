@@ -1,5 +1,8 @@
 # Pruebas del backend
 
+[Índice de diagramas y UML](diagrams/README.md) ·
+[Secuencias de pedidos verificadas por integración](diagrams/uml-sequences.md)
+
 ## Pedidos de autoservicio
 
 La implementación de pedidos añade 13 casos unitarios y 18 de integración.

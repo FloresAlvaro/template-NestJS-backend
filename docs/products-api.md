@@ -1,5 +1,8 @@
 # API de productos
 
+Ver [UML de catálogo e inventario](diagrams/uml-classes.md#catalogo-inventario)
+y el [índice de diagramas](diagrams/README.md).
+
 Cada producto pertenece a una subcategoría; la categoría se obtiene a través de
 ella. Las respuestas incluyen `quantity`, `minStock` y `stockStatus` del
 [inventario](inventory-api.md). Se crea en cero y se modifica únicamente mediante

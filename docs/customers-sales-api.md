@@ -1,5 +1,10 @@
 # Clientes y ventas
 
+Ver [flujo de ventas](flowcharts.md#2-registrar-una-venta),
+[UML de clientes](diagrams/uml-classes.md#usuarios-sesiones),
+[UML de pedidos y ventas](diagrams/uml-classes.md#pedidos-ventas)
+y el [índice de diagramas](diagrams/README.md).
+
 ## Clientes
 
 `Customer` representa al comprador, con o sin cuenta `User`. El registro público

@@ -3,8 +3,8 @@
 API NestJS con PostgreSQL y Prisma. Actualmente implementa categorías,
 subcategorías, productos, inventario, clientes, ventas, cobros y autenticación.
 
-Para entender su funcionamiento, consulta los [diagramas de flujo](docs/flowcharts.md)
-de permisos, ventas, recuperación de contraseña, imágenes, reportes y pruebas.
+Para entender su funcionamiento, consulta el [índice de diagramas de flujo y UML](docs/diagrams/README.md)
+de permisos, catálogo, usuarios, pedidos, ventas, recuperación de contraseña y pruebas.
 
 ## Configuración
 
@@ -249,6 +249,17 @@ hallazgos críticos. Consulta las versiones, excepciones y avisos restantes en
 [seguridad de dependencias](docs/dependency-security.md).
 La matriz de acceso de las 49 rutas, sus comprobaciones y las funcionalidades
 pendientes están en [permisos y pendientes](docs/permissions-and-backlog.md).
+
+## Diagramas y UML
+
+- [Índice de diagramas de flujo y UML](docs/diagrams/README.md).
+- [Diagramas de flujo del backend](docs/flowcharts.md).
+- [UML de clases: catálogo, usuarios, pedidos y ventas](docs/diagrams/uml-classes.md).
+- [UML de secuencia: creación, confirmación y entrega de pedidos](docs/diagrams/uml-sequences.md).
+- [UML de estados del pedido](docs/diagrams/uml-order-states.md).
+
+Los diagramas están escritos en Mermaid y pueden visualizarse en GitHub o en un
+visor Markdown compatible. El índice enlaza directamente a cada diagrama.
 
 ## Código compartido
 

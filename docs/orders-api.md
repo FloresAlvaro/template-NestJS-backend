@@ -1,5 +1,12 @@
 # Pedidos de autoservicio
 
+Diagramas relacionados: [flujo de pedidos](#reservas-y-ciclo-de-vida),
+[clases](diagrams/uml-classes.md#pedidos-ventas),
+[creación](diagrams/uml-sequences.md#crear-pedido),
+[confirmación y entrega](diagrams/uml-sequences.md#confirmar-entregar),
+[estados](diagrams/uml-order-states.md#estados-pedido).
+Ver también el [índice de diagramas y UML](diagrams/README.md).
+
 Primera etapa: CUSTOMER autenticado, retiro en tienda (`fulfillment: "PICKUP"`)
 y cobros manuales registrados por ADMIN/SELLER. No incluye carrito persistente,
 envíos, pasarela ni notificaciones. Los clientes sin cuenta mantienen las ventas

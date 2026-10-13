@@ -1,5 +1,8 @@
 # Diagramas de flujo del backend
 
+[Índice de diagramas](diagrams/README.md) · [UML de clases](diagrams/uml-classes.md) ·
+[UML de secuencias](diagrams/uml-sequences.md) · [UML de estados](diagrams/uml-order-states.md)
+
 Estos diagramas describen la implementación actual. Los rectángulos son acciones,
 los rombos son decisiones y las flechas indican el siguiente paso. Un rollback
 deshace todos los cambios de la transacción; no revierte operaciones anteriores

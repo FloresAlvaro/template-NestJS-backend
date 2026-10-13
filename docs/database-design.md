@@ -1,5 +1,8 @@
 # Diseño de base de datos
 
+Ver [UML de clases](diagrams/uml-classes.md), [estados de pedidos](diagrams/uml-order-states.md)
+y el [índice de diagramas](diagrams/README.md).
+
 ## Resultado de la revisión
 
 Al revisar el repositorio solo existía `prisma/schema.prisma`, con una tabla

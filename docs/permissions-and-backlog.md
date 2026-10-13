@@ -1,5 +1,9 @@
 # Permisos y pendientes — 13 de octubre de 2026
 
+Ver [flujo de permisos](flowcharts.md#1-permisos-de-una-petición),
+[UML de usuarios y sesiones](diagrams/uml-classes.md#usuarios-sesiones)
+y el [índice de diagramas](diagrams/README.md).
+
 ## Resultado
 
 Actualización posterior a la revisión inicial: se añadieron cuatro rutas de

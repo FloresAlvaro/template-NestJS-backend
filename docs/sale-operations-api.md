@@ -1,5 +1,10 @@
 # Cobros, reembolsos, devoluciones y anulaciones
 
+Ver [flujo de operaciones](flowcharts.md#3-cobros-devoluciones-y-reembolsos),
+[UML de ventas](diagrams/uml-classes.md#pedidos-ventas),
+[UML de estados del pedido vinculado](diagrams/uml-order-states.md#estados-pedido)
+y el [índice de diagramas](diagrams/README.md).
+
 Todas las rutas requieren sesión y un Origin autorizado. No existe edición ni
 borrado de operaciones. El detalle y listado de ventas incluyen `status` (ACTIVE,
 PARTIALLY_RETURNED, RETURNED, CANCELLED), `paid`, `refunded`, `adjustedTotal`,
