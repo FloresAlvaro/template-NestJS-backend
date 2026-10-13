@@ -7,6 +7,11 @@ La ampliación del 13/10/2026 añade 45 casos unitarios y 15 de integración:
 el resultado validado es **59 unitarios en 6 suites** y **97 de integración en
 8 suites**. Son conteos de casos, no porcentajes de cobertura.
 
+La corrección posterior del PR añade dos regresiones HTTP de límites de
+autenticación: el total Jest e2e pasa a **99 casos en 9 suites**. El script del
+administrador añade **8 casos unitarios y 2 de integración** con el runner de Node,
+contados por separado de los 59 unitarios de Jest.
+
 ## Pruebas unitarias
 
 ```powershell
@@ -74,10 +79,40 @@ temporal; no usar la base habitual ni el buzón Mailpit local del usuario.
 
 ## Otras comprobaciones
 
+### Regresiones del primer administrador y del límite de autenticación
+
+Después de `npm run build`:
+
+```powershell
+npm run test:admin
+```
+
+No requiere base de datos. Rechaza correos que el login no admite, valida nombres,
+límites de contraseña y confirmación, conserva normalización y verifica que una
+entrada inválida no abre una transacción.
+
+En una base desechable terminada en `_test`, migrada y **sin administradores**:
+
+```powershell
+npm run test:admin:e2e
+```
+
+Esta suite utiliza TEST_DATABASE_URL, comprueba que el administrador creado por
+el script puede iniciar sesión por HTTP y que no se permite ejecutar nuevamente
+el bootstrap. Elimina solo su cuenta al finalizar. No borrar administradores de
+otra base para preparar esta prueba.
+
+`test/auth-throttle.e2e-spec.ts`, incluida en `test:e2e`, verifica que login y
+registro comparten su contador con mayúsculas, prefijo en mayúsculas y barra
+final. Origin se valida antes de contar. El límite ahora se aplica mediante
+metadata de las rutas, sin comparar el texto de la URL.
+
 ```powershell
 npm run build
 npx eslint "src/**/*.ts" "test/**/*.ts"
 ```
 
-Esta ampliación no cambia rutas, reglas de negocio, esquema ni dependencias.
-No requiere reconstruir la instancia local de Docker.
+La ampliación inicial no modificó los contratos. La corrección posterior conserva
+rutas, esquema y dependencias, y cierra el bypass del límite de autenticación.
+Para actualizar una instancia local que siga ejecutando el código anterior,
+usar `docker compose up -d --build backend`.

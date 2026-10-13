@@ -13,7 +13,7 @@ import { ConfigService } from '@nestjs/config';
 import { ApiTags, ApiCookieAuth } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { Role } from '../../generated/prisma/client';
-import { Public, Roles } from './access.decorators';
+import { AuthThrottle, Public, Roles } from './access.decorators';
 import type { AuthRequest } from './auth.types';
 import { AuthService } from './auth.service';
 import {
@@ -47,11 +47,13 @@ export class AuthController {
     };
   }
   @Public()
+  @AuthThrottle()
   @Post('register')
   register(@Body() dto: RegisterDto) {
     return this.auth.register(dto);
   }
   @Public()
+  @AuthThrottle()
   @Post('login')
   @HttpCode(200)
   async login(

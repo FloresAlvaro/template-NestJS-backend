@@ -33,6 +33,9 @@ export class AccessGuard implements CanActivate {
     const recovery =
       !safe &&
       this.reflector.getAllAndOverride<boolean>('recoveryThrottle', targets);
+    const authentication =
+      !safe &&
+      this.reflector.getAllAndOverride<boolean>('authThrottle', targets);
     if (!safe) {
       const origins = trustedOrigins(
         this.config.get<string>('TRUSTED_ORIGINS'),
@@ -40,12 +43,7 @@ export class AccessGuard implements CanActivate {
       if (!req.headers.origin || !origins.includes(req.headers.origin))
         throw new ForbiddenException('Untrusted request origin');
     }
-    if (
-      recovery ||
-      ['/api/auth/login', '/api/auth/register'].includes(
-        req.path.replace(/\/+$/, ''),
-      )
-    ) {
+    if (recovery || authentication) {
       const now = Date.now();
       for (const [key, value] of this.attempts)
         if (value.until <= now) this.attempts.delete(key);

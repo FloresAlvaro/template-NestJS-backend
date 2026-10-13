@@ -44,6 +44,11 @@ npm run test:unit
 npx eslint "src/**/*.ts" "test/**/*.ts"
 ```
 
+Después del build, `npm run test:admin` verifica la validación del primer
+administrador. `npm run test:admin:e2e` comprueba su login real únicamente con
+TEST_DATABASE_URL en una base desechable terminada en `_test` y sin administradores;
+ver [preparación y alcance](docs/testing.md).
+
 `build` genera el cliente Prisma y compila a `dist`; `npm run start:prod` ejecuta
 `dist/src/main.js`. La carpeta `generated/prisma` se genera, no se versiona.
 
