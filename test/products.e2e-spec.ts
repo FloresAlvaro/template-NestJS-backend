@@ -108,6 +108,119 @@ describe('Products API (PostgreSQL)', () => {
       .send({ ...payload(), sku: ` ${product.sku.toLowerCase()} ` })
       .expect(409);
   });
+  it('filters availability using each product minimum before pagination and combines search/status', async () => {
+    const name = `Stock ${prefix}`;
+    const ids: number[] = [];
+    for (const quantity of [0, 3, 5, 6]) {
+      const product = await create({ name });
+      ids.push(product.productId);
+      await db.inventory.update({
+        where: { productId: product.productId },
+        data: { quantity, minStock: 5 },
+      });
+    }
+    const legacy = await create({ name });
+    await db.inventory.delete({ where: { productId: legacy.productId } });
+    for (const [availability, expected] of [
+      ['OUT_OF_STOCK', [ids[0], legacy.productId]],
+      ['LOW_STOCK', [ids[1], ids[2]]],
+      ['AVAILABLE', [ids[3]]],
+      ['all', [...ids, legacy.productId]],
+    ] as const) {
+      const result = await request(app.getHttpServer())
+        .get('/api/products')
+        .query({ search: name, subCategoryId, availability })
+        .expect(200);
+      const body = result.body as {
+        total: number;
+        items: { productId: number }[];
+      };
+      expect(body.total).toBe(expected.length);
+      expect(body.items.map((item) => item.productId)).toEqual(expected);
+    }
+    const next = await request(app.getHttpServer())
+      .get('/api/products')
+      .query({ search: name, availability: 'LOW_STOCK', limit: 1, page: 2 })
+      .expect(200);
+    expect(next.body).toMatchObject({
+      total: 2,
+      items: [{ productId: ids[2] }],
+    });
+    await request(app.getHttpServer())
+      .delete(`/api/products/${ids[3]}`)
+      .expect(200);
+    const active = await request(app.getHttpServer())
+      .get('/api/products')
+      .query({ search: name, availability: 'AVAILABLE', status: 'active' })
+      .expect(200);
+    expect(active.body).toMatchObject({ total: 0, items: [] });
+    await request(app.getHttpServer())
+      .get('/api/products')
+      .query({ availability: 'invalid' })
+      .expect(400);
+  });
+  it('searches name or SKU across pages and combines filters without interpreting wildcards', async () => {
+    const name = `Búsqueda ${prefix}`;
+    const first = await create({ name });
+    const second = await create({ name });
+    await request(app.getHttpServer())
+      .delete(`/api/products/${second.productId}`)
+      .expect(200);
+    const result = await request(app.getHttpServer())
+      .get('/api/products')
+      .query({ search: `  ${name.toUpperCase()}  `, limit: 1 })
+      .expect(200);
+    expect(result.body).toMatchObject({
+      total: 2,
+      items: [{ productId: first.productId }],
+    });
+    const next = await request(app.getHttpServer())
+      .get('/api/products')
+      .query({ search: name, limit: 1, page: 2 })
+      .expect(200);
+    expect(next.body).toMatchObject({
+      total: 2,
+      items: [{ productId: second.productId }],
+    });
+    const bySku = await request(app.getHttpServer())
+      .get('/api/products')
+      .query({
+        search: first.sku.toLowerCase(),
+        status: 'active',
+        subCategoryId,
+      })
+      .expect(200);
+    expect(bySku.body).toMatchObject({
+      total: 1,
+      items: [{ productId: first.productId }],
+    });
+    const inactive = await request(app.getHttpServer())
+      .get('/api/products')
+      .query({ search: name, status: 'inactive' })
+      .expect(200);
+    expect(inactive.body).toMatchObject({
+      total: 1,
+      items: [{ productId: second.productId }],
+    });
+    const missing = await request(app.getHttpServer())
+      .get('/api/products')
+      .query({ search: `${prefix}-inexistente` })
+      .expect(200);
+    expect(missing.body).toMatchObject({ total: 0, items: [] });
+    const wildcard = await create({ name: `Oferta 50% ${prefix}` });
+    const literal = await request(app.getHttpServer())
+      .get('/api/products')
+      .query({ search: `50% ${prefix}` })
+      .expect(200);
+    expect(literal.body).toMatchObject({
+      total: 1,
+      items: [{ productId: wildcard.productId }],
+    });
+    await request(app.getHttpServer())
+      .get('/api/products')
+      .query({ search: 'x'.repeat(151) })
+      .expect(400);
+  });
   it('enforces unique barcode and allows clearing it', async () => {
     const barcode = `${Date.now()}${++seq}`;
     const product = await create({ barcode });

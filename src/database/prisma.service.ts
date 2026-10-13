@@ -28,9 +28,12 @@ export class PrismaService
   catalogWrite<T>(
     operation: (tx: Prisma.TransactionClient) => Promise<T>,
   ): Promise<T> {
-    return this.$transaction(async (tx) => {
-      await tx.$executeRaw`SELECT pg_advisory_xact_lock(7140321)`;
-      return operation(tx);
-    });
+    return this.$transaction(
+      async (tx) => {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(7140321)`;
+        return operation(tx);
+      },
+      { maxWait: 10000, timeout: 30000 },
+    );
   }
 }

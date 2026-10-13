@@ -1,6 +1,12 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class ProductEntity {
+  @ApiProperty({ example: 0, minimum: 0 })
+  quantity!: number;
+  @ApiProperty({ example: 0, minimum: 0 })
+  minStock!: number;
+  @ApiProperty({ enum: ['OUT_OF_STOCK', 'LOW_STOCK', 'AVAILABLE'] })
+  stockStatus!: string;
   @ApiProperty({ example: 1 })
   productId!: number;
   @ApiProperty({ example: 1 })

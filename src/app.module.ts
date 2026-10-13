@@ -1,4 +1,7 @@
 import { ShopModule } from './shop/shop.module';
+import { CustomersModule } from './customers/customers.module';
+import { SalesModule } from './sales/sales.module';
+import { InventoryModule } from './inventory/inventory.module';
 import { Module } from '@nestjs/common';
 import { HealthModule } from './health/health.module';
 import { ConfigModule } from '@nestjs/config';
@@ -22,6 +25,9 @@ import { UsersModule } from './users/users.module';
     AuthModule,
     UsersModule,
     ShopModule,
+    InventoryModule,
+    CustomersModule,
+    SalesModule,
   ],
   controllers: [],
   providers: [],

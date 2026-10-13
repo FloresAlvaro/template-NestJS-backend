@@ -1,8 +1,10 @@
+import { withStock } from '../inventory/stock-summary';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { serializePrice } from '../common/utils/serialize-price';
 const select = {
+  inventory: { select: { quantity: true, minStock: true } },
   productId: true,
   name: true,
   sku: true,
@@ -30,7 +32,7 @@ export class ShopService {
       this.db.product.count({ where }),
     ]);
     return {
-      items: items.map((p) => serializePrice(p)),
+      items: items.map((p) => serializePrice(withStock(p))),
       total,
       page: dto.page,
       limit: dto.limit,
@@ -42,6 +44,6 @@ export class ShopService {
       select,
     });
     if (!product) throw new NotFoundException('Product not found');
-    return serializePrice(product);
+    return serializePrice(withStock(product));
   }
 }

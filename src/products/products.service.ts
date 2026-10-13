@@ -1,3 +1,4 @@
+import { withStock } from '../inventory/stock-summary';
 import { serializePrice } from '../common/utils/serialize-price';
 import { activeStatusWhere } from '../common/utils/status-filter';
 import {
@@ -15,9 +16,13 @@ import { ListProductsDto } from './dto/list-products.dto';
 export class ProductsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private serialize(product: Product) {
+  private serialize(
+    product: Product & {
+      inventory: { quantity: number; minStock: number } | null;
+    },
+  ) {
     return {
-      ...serializePrice(product),
+      ...serializePrice(withStock(product)),
       cost: product.cost.toFixed(2),
     };
   }
@@ -54,7 +59,10 @@ export class ProductsService {
   }
 
   private async requireProduct(tx: Prisma.TransactionClient, id: number) {
-    const product = await tx.product.findUnique({ where: { productId: id } });
+    const product = await tx.product.findUnique({
+      where: { productId: id },
+      include: { inventory: true },
+    });
     if (!product)
       throw new NotFoundException(`Product with id ${id} not found`);
     return product;
@@ -64,12 +72,17 @@ export class ProductsService {
     return this.prisma.catalogWrite(async (tx) => {
       await this.requireParent(tx, dto.subCategoryId);
       await this.ensureUnique(tx, dto.sku, dto.barcode);
-      return this.serialize(await tx.product.create({ data: dto }));
+      return this.serialize(
+        await tx.product.create({
+          data: { ...dto, inventory: { create: {} } },
+          include: { inventory: true },
+        }),
+      );
     });
   }
 
   async findAll(query: ListProductsDto) {
-    const { status, subCategoryId, page, limit } = query;
+    const { status, subCategoryId, page, limit, search, availability } = query;
     if (
       subCategoryId !== undefined &&
       !(await this.prisma.subCategory.findUnique({ where: { subCategoryId } }))
@@ -81,10 +94,47 @@ export class ProductsService {
     const where: Prisma.ProductWhereInput = {
       subCategoryId,
       ...activeStatusWhere(status),
+      ...(search
+        ? {
+            OR: [
+              {
+                name: {
+                  contains: search.replace(/[\\%_]/g, '\\$&'),
+                  mode: 'insensitive' as const,
+                },
+              },
+              {
+                sku: {
+                  contains: search.replace(/[\\%_]/g, '\\$&'),
+                  mode: 'insensitive' as const,
+                },
+              },
+            ],
+          }
+        : {}),
     };
+    if (availability === 'OUT_OF_STOCK') {
+      where.AND = [
+        {
+          OR: [
+            { inventory: { is: null } },
+            { inventory: { is: { quantity: 0 } } },
+          ],
+        },
+      ];
+    } else if (availability === 'LOW_STOCK') {
+      where.inventory = {
+        is: { quantity: { gt: 0, lte: this.prisma.inventory.fields.minStock } },
+      };
+    } else if (availability === 'AVAILABLE') {
+      where.inventory = {
+        is: { quantity: { gt: this.prisma.inventory.fields.minStock } },
+      };
+    }
     const [items, total] = await this.prisma.$transaction(
       [
         this.prisma.product.findMany({
+          include: { inventory: true },
           where,
           orderBy: { productId: 'asc' },
           skip: (page - 1) * limit,
@@ -116,7 +166,11 @@ export class ProductsService {
         );
       await this.ensureUnique(tx, dto.sku, dto.barcode, id);
       return this.serialize(
-        await tx.product.update({ where: { productId: id }, data: dto }),
+        await tx.product.update({
+          where: { productId: id },
+          data: dto,
+          include: { inventory: true },
+        }),
       );
     });
   }
@@ -129,6 +183,7 @@ export class ProductsService {
       return this.serialize(
         await tx.product.update({
           where: { productId: id },
+          include: { inventory: true },
           data: { isActive: false },
         }),
       );
@@ -144,6 +199,7 @@ export class ProductsService {
       return this.serialize(
         await tx.product.update({
           where: { productId: id },
+          include: { inventory: true },
           data: { isActive: true },
         }),
       );

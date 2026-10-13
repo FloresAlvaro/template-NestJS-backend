@@ -1,7 +1,7 @@
 # Backend de gestión de productos
 
 API NestJS con PostgreSQL y Prisma. Actualmente implementa categorías,
-subcategorías, productos y health. Inventario, ventas y autenticación están pendientes.
+subcategorías, productos, inventario, clientes, ventas, cobros y autenticación.
 
 ## Configuración
 
@@ -125,7 +125,7 @@ Se agregaron User, Session y Customer. Customer.userId es opcional y único: per
 | Editar nombre y contraseña propia | Sí | Sí | Cliente autenticado |
 | Editar documento/teléfono propio | No | No | Cliente autenticado |
 
-No se han añadido todavía ventas, historial de compras, inventario ni recuperación por correo. Un administrador puede restablecer contraseñas desde Usuarios. Las imágenes de productos siguen pendientes.
+La recuperación de contraseña por correo y las compras de autoservicio siguen pendientes. Un administrador puede restablecer contraseñas desde Usuarios. Las imágenes de productos siguen pendientes.
 
 ### Primer administrador
 
@@ -136,6 +136,69 @@ docker compose exec backend node scripts/create-admin.cjs
 ```
 
 El comando solicita nombre, correo y contraseña sin mostrarla. Solo funciona si todavía no existe un administrador. No hay credenciales predeterminadas. Después abre http://localhost:3000/login y crea otros usuarios desde Usuarios. Fuera de Docker: aplica migraciones, ejecuta `npm run build` y `npm run admin:create` con DATABASE_URL configurada.
+
+### Datos de prueba
+
+Después de aplicar las migraciones y compilar el backend, ejecuta desde este
+directorio para cargar categorías, subcategorías y productos de ejemplo:
+
+```powershell
+npm run build
+$env:SEED_ADMIN_EMAIL = 'correo-de-tu-administrador@ejemplo.com'
+npm run db:seed
+```
+
+El catálogo de `scripts/seed-data.cjs` contiene 6 categorías, 12 subcategorías y
+36 productos de electrónica, computación, hogar, oficina, deportes y cuidado
+personal. Incluye `quantity` (stock inicial) y `minStock` por producto: hay ejemplos
+agotados, con stock bajo y disponible. Los códigos de barras son sintéticos para desarrollo.
+
+El comando es idempotente: agrega registros faltantes y conserva los existentes,
+incluidos precios, nombres, relaciones y estados. Reconoce categorías por nombre
+normalizado, subcategorías por categoría y nombre normalizado, y productos por SKU.
+Inicializa existencias y mínimo únicamente en productos activos de la misma
+subcategoría cuyo inventario esté en cero, con mínimo cero y sin movimientos.
+Esto incluye los productos cargados antes de agregar inventario. Conserva todo
+inventario ya gestionado, incluso si volvió a cero. Cada cantidad positiva genera
+una entrada con el motivo `Stock inicial de ejemplo (seed)` y el administrador
+indicado en `SEED_ADMIN_EMAIL`. Configura esta variable con el correo de un
+administrador activo existente; no se crean cuentas. Si falta un administrador
+válido cuando se necesita registrar stock, se revierte toda la carga.
+
+Omite ramas de categorías o subcategorías inactivas. Un código de barras ocupado
+por otro SKU cancela toda la carga; no deja cambios parciales. Valida los datos
+con los mismos DTO del backend. No elimina registros ni crea usuarios o contraseñas.
+Configura `DATABASE_URL` para la base de datos de desarrollo antes de ejecutarlo.
+Con Docker Compose, reconstruye la imagen para incluir la versión actual del script
+y luego carga los datos:
+
+```powershell
+docker compose up -d --build backend
+docker compose exec -e SEED_ADMIN_EMAIL=correo-de-tu-administrador@ejemplo.com backend node scripts/seed.cjs
+```
+
+Para comprobar el seed: compila, aplica las migraciones a una base temporal y
+configura `TEST_DATABASE_URL` con su URL, cuyo nombre debe terminar en `_test`.
+Ejecuta `npm run test:seed`. Las pruebas borran el catálogo de esa base de prueba;
+no utilices una base con datos que necesites conservar.
+
+### Inventario de productos
+
+Productos incluye stock disponible, stock mínimo e historial de entradas, salidas
+y ajustes por conteo. Administradores registran movimientos y vendedores consultan.
+Los productos empiezan en cero; carga sus existencias mediante una entrada de stock
+inicial. Consulta [la documentación de inventario](docs/inventory-api.md) para rutas,
+permisos, reglas y actualización de la base de datos.
+
+### Clientes y ventas
+
+ADMIN y SELLER pueden buscar y crear clientes sin cuenta, y registrar y consultar
+ventas con descuento transaccional de stock. ADMIN también edita y desactiva
+clientes. Las ventas conservan precios y datos históricos, y los reintentos no
+duplican ventas ni movimientos. Consulta [clientes y ventas](docs/customers-sales-api.md).
+Cobros manuales (efectivo, tarjeta o transferencia), reembolsos, devoluciones parciales
+y anulaciones están disponibles desde el detalle. Una venta registrada no equivale
+a un cobro. Consulta [las operaciones de venta](docs/sale-operations-api.md).
 
 ### Sesiones y configuración
 

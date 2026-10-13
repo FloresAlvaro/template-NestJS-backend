@@ -40,18 +40,21 @@ model SubCategory {
 }
 
 model Product {
-  productId     Int         @id @default(autoincrement())
-  subCategoryId Int
-  subCategory   SubCategory @relation(fields: [subCategoryId], references: [subCategoryId], onDelete: Restrict)
-  name          String      @db.VarChar(150)
-  sku           String      @unique @db.VarChar(64)
-  barcode       String?     @unique @db.VarChar(64)
-  description   String?     @db.VarChar(1000)
-  cost          Decimal     @db.Decimal(18, 2)
-  salePrice     Decimal     @db.Decimal(18, 2)
-  isActive      Boolean     @default(true)
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  saleItems      SaleItem[]
+  inventory      Inventory?
+  stockMovements StockMovement[]
+  productId      Int             @id @default(autoincrement())
+  subCategoryId  Int
+  subCategory    SubCategory     @relation(fields: [subCategoryId], references: [subCategoryId], onDelete: Restrict)
+  name           String          @db.VarChar(150)
+  sku            String          @unique @db.VarChar(64)
+  barcode        String?         @unique @db.VarChar(64)
+  description    String?         @db.VarChar(1000)
+  cost           Decimal         @db.Decimal(18, 2)
+  salePrice      Decimal         @db.Decimal(18, 2)
+  isActive       Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
 
   @@index([subCategoryId, isActive])
 }
@@ -63,35 +66,157 @@ enum Role {
 }
 
 model User {
-  userId Int @id @default(autoincrement())
-  name String @db.VarChar(100)
-  email String @unique @db.VarChar(254)
-  passwordHash String
-  role Role @default(CUSTOMER)
-  isActive Boolean @default(true)
-  createdAt DateTime @default(now())
+  saleOperations SaleOperation[]
+  sales          Sale[]
+  stockMovements StockMovement[]
+  userId         Int             @id @default(autoincrement())
+  name           String          @db.VarChar(100)
+  email          String          @unique @db.VarChar(254)
+  passwordHash   String
+  role           Role            @default(CUSTOMER)
+  isActive       Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  sessions       Session[]
+  customer       Customer?
+}
+
+model Inventory {
+  productId Int      @id
+  product   Product  @relation(fields: [productId], references: [productId], onDelete: Cascade)
+  quantity  Int      @default(0)
+  minStock  Int      @default(0)
   updatedAt DateTime @updatedAt
-  sessions Session[]
-  customer Customer?
+}
+
+enum StockMovementType {
+  ENTRY
+  EXIT
+  ADJUSTMENT
+}
+
+model StockMovement {
+  operationItemId   Int?               @unique
+  operationItem     SaleOperationItem? @relation(fields: [operationItemId], references: [operationItemId], onDelete: Restrict)
+  saleItemId        Int?               @unique
+  saleItem          SaleItem?          @relation(fields: [saleItemId], references: [saleItemId], onDelete: Restrict)
+  stockMovementId   Int                @id @default(autoincrement())
+  productId         Int
+  product           Product            @relation(fields: [productId], references: [productId], onDelete: Restrict)
+  userId            Int
+  user              User               @relation(fields: [userId], references: [userId], onDelete: Restrict)
+  type              StockMovementType
+  quantity          Int
+  previousQuantity  Int
+  resultingQuantity Int
+  reason            String             @db.VarChar(500)
+  createdAt         DateTime           @default(now())
+
+  @@index([productId, stockMovementId])
 }
 
 model Customer {
-  customerId Int @id @default(autoincrement())
-  userId Int? @unique
-  user User? @relation(fields: [userId], references: [userId], onDelete: Restrict)
-  name String @db.VarChar(100)
-  document String? @db.VarChar(50)
-  phone String? @db.VarChar(30)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  isActive   Boolean  @default(true)
+  sales      Sale[]
+  customerId Int      @id @default(autoincrement())
+  userId     Int?     @unique
+  user       User?    @relation(fields: [userId], references: [userId], onDelete: Restrict)
+  name       String   @db.VarChar(100)
+  document   String?  @db.VarChar(50)
+  phone      String?  @db.VarChar(30)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Sale {
+  operations       SaleOperation[]
+  saleId           Int             @id @default(autoincrement())
+  requestId        String          @unique @db.Uuid
+  requestHash      String          @db.VarChar(64)
+  customerId       Int
+  customer         Customer        @relation(fields: [customerId], references: [customerId], onDelete: Restrict)
+  userId           Int
+  user             User            @relation(fields: [userId], references: [userId], onDelete: Restrict)
+  customerName     String          @db.VarChar(100)
+  customerDocument String?         @db.VarChar(50)
+  sellerName       String          @db.VarChar(100)
+  total            Decimal         @db.Decimal(18, 2)
+  createdAt        DateTime        @default(now())
+  items            SaleItem[]
+
+  @@index([createdAt, saleId])
+  @@index([customerId])
+}
+
+model SaleItem {
+  operationItems SaleOperationItem[]
+  saleItemId     Int                 @id @default(autoincrement())
+  saleId         Int
+  sale           Sale                @relation(fields: [saleId], references: [saleId], onDelete: Restrict)
+  productId      Int
+  product        Product             @relation(fields: [productId], references: [productId], onDelete: Restrict)
+  productName    String              @db.VarChar(150)
+  sku            String              @db.VarChar(64)
+  quantity       Int
+  unitPrice      Decimal             @db.Decimal(18, 2)
+  subtotal       Decimal             @db.Decimal(18, 2)
+  stockMovement  StockMovement?
+
+  @@unique([saleId, productId])
 }
 
 model Session {
-  tokenHash String @id
-  userId Int
-  user User @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  tokenHash String   @id
+  userId    Int
+  user      User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
   expiresAt DateTime
   createdAt DateTime @default(now())
+
   @@index([userId])
   @@index([expiresAt])
+}
+
+enum SaleOperationKind {
+  PAYMENT
+  REFUND
+  RETURN
+  CANCEL
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  TRANSFER
+}
+
+model SaleOperation {
+  operationId Int                 @id @default(autoincrement())
+  requestId   String              @unique @db.Uuid
+  requestHash String              @db.VarChar(64)
+  saleId      Int
+  sale        Sale                @relation(fields: [saleId], references: [saleId], onDelete: Restrict)
+  userId      Int
+  user        User                @relation(fields: [userId], references: [userId], onDelete: Restrict)
+  userName    String              @db.VarChar(100)
+  kind        SaleOperationKind
+  amount      Decimal             @db.Decimal(18, 2)
+  method      PaymentMethod?
+  reason      String              @db.VarChar(500)
+  createdAt   DateTime            @default(now())
+  items       SaleOperationItem[]
+
+  @@index([saleId, operationId])
+}
+
+model SaleOperationItem {
+  operationItemId Int            @id @default(autoincrement())
+  operationId     Int
+  operation       SaleOperation  @relation(fields: [operationId], references: [operationId], onDelete: Restrict)
+  saleItemId      Int
+  saleItem        SaleItem       @relation(fields: [saleItemId], references: [saleItemId], onDelete: Restrict)
+  quantity        Int
+  subtotal        Decimal        @db.Decimal(18, 2)
+  stockMovement   StockMovement?
+
+  @@unique([operationId, saleItemId])
 }

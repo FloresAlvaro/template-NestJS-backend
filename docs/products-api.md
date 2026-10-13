@@ -1,9 +1,21 @@
 # API de productos
 
-Productos pertenece al catálogo implementado; no tiene stock. Cada producto
-pertenece a una subcategoría; la categoría se obtiene a través de ella.
+Cada producto pertenece a una subcategoría; la categoría se obtiene a través de
+ella. Las respuestas incluyen `quantity`, `minStock` y `stockStatus` del
+[inventario](inventory-api.md). Se crea en cero y se modifica únicamente mediante
+movimientos de inventario, no al editar precios o campos del producto.
 
 ## Rutas
+
+`GET /api/products?search=teclado` busca coincidencias parciales en el nombre o SKU,
+sin distinguir mayúsculas. Admite hasta 150 caracteres y se combina con `status`,
+`subCategoryId`, `page` y `limit`. El total y la paginación se calculan sobre todos
+los resultados filtrados. Una búsqueda vacía mantiene el listado sin búsqueda.
+
+El parámetro `availability` admite `all` (predeterminado), `AVAILABLE` (cantidad
+mayor al mínimo), `LOW_STOCK` (cantidad positiva menor o igual al mínimo) y
+`OUT_OF_STOCK` (cantidad cero). Se combina con búsqueda, estado, subcategoría y
+paginación. La disponibilidad se calcula con el mínimo propio de cada producto.
 
 | Método | Ruta                         | Resultado                               |
 | ------ | ---------------------------- | --------------------------------------- |
@@ -14,8 +26,9 @@ pertenece a una subcategoría; la categoría se obtiene a través de ella.
 | DELETE | `/api/products/:id`          | Desactivar sin borrar físicamente (200) |
 | PATCH  | `/api/products/:id/activate` | Reactivar (200)                         |
 
-Swagger en `/docs` contiene los DTO y esquemas de respuesta. Las rutas todavía
-no tienen control de acceso; usuarios y permisos son la siguiente etapa.
+Swagger en `/docs` contiene los DTO y esquemas de respuesta. Las consultas requieren
+ADMIN o SELLER, y las escrituras ADMIN y un Origin confiable. El costo se oculta a
+vendedores. Los clientes consultan `/api/shop/products`, que no expone costos.
 
 ## Crear
 

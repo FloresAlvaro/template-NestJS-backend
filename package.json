@@ -22,6 +22,8 @@
     "prisma:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
     "db:migrate:dev": "prisma migrate dev",
+    "db:seed": "node scripts/seed.cjs",
+    "test:seed": "node --test scripts/seed.test.cjs",
     "test:unit": "jest --runInBand",
     "admin:create": "node scripts/create-admin.cjs"
   },
