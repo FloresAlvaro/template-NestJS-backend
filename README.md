@@ -146,7 +146,7 @@ Se agregaron User, Session y Customer. Customer.userId es opcional y único: per
 | Editar documento/teléfono propio | No | No | Cliente autenticado |
 
 La recuperación de contraseña local está disponible con [Mailpit y formulario independiente](docs/password-recovery-api.md).
-Las compras de autoservicio siguen pendientes. Un administrador también puede restablecer contraseñas desde Usuarios.
+Las compras de autoservicio para CUSTOMER están disponibles mediante [pedidos con retiro y cobro manual](docs/orders-api.md). Las reservas duran 24 horas por defecto. Un administrador también puede restablecer contraseñas desde Usuarios.
 Ya hay [imágenes de productos](docs/product-images-api.md), una por producto,
 y [reportes de ventas e inventario](docs/reports-api.md) para ADMIN.
 Las pantallas frontend de estas funciones todavía requieren integración.

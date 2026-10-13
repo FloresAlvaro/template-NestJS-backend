@@ -172,6 +172,12 @@ export class SaleOperationsService {
           },
         });
       }
+      if (kind === 'CANCEL') {
+        await tx.order.updateMany({
+          where: { saleId },
+          data: { status: 'CANCELLED', cancelledAt: new Date() },
+        });
+      }
       return serializeSale(
         await tx.sale.findUniqueOrThrow({
           where: { saleId },

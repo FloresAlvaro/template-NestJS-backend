@@ -7,7 +7,7 @@ reportes exclusivas de ADMIN, tres rutas de imágenes de gestión (GET para
 ADMIN/SELLER y POST/DELETE para ADMIN), y una lectura pública de imágenes que
 valida la activación de todos los padres. La recuperación local agrega dos POST
 públicos con Origin y límite de intentos, y un GET de formulario independiente.
-Ahora hay 60 rutas. Ver
+Los pedidos de autoservicio añaden siete rutas con permisos explícitos y aislamiento por propietario. Ahora hay 67 rutas. Ver [pedidos](orders-api.md),
 [reportes](reports-api.md) e [imágenes](product-images-api.md).
 
 Se revisaron las 49 rutas declaradas por los 10 controladores, el registro global
@@ -32,6 +32,7 @@ Todas las rutas de esta tabla llevan el prefijo `/api`.
 | `/products/:id/inventory` y `/movements` relativo | ADMIN/SELLER | ADMIN: PATCH inventario y POST movimientos |
 | `/customers`, `/customers/:id` | ADMIN/SELLER | POST: ADMIN/SELLER; PATCH por ID: ADMIN |
 | `/sales`, `/sales/:id` | ADMIN/SELLER | POST raíz y `:id/payments`: ADMIN/SELLER; `:id/refunds`, `:id/returns`, `:id/cancel`: ADMIN |
+| `/orders`, `/orders/:id` | ADMIN/SELLER: todos; CUSTOMER: propios | POST raíz: CUSTOMER; `:id/confirm`, `:id/ready`, `:id/complete`: ADMIN/SELLER; `:id/cancel`: ADMIN/SELLER y CUSTOMER propietario, solo PENDING |
 | `/users` | ADMIN | ADMIN: POST raíz, PATCH `:id`, POST `:id/password` |
 | `/auth/me` | ADMIN/SELLER/CUSTOMER | — |
 | `/auth/profile`, `/auth/password`, `/auth/logout` | — | ADMIN/SELLER/CUSTOMER, sobre su propia sesión/cuenta |
@@ -43,7 +44,7 @@ Todas las rutas de esta tabla llevan el prefijo `/api`.
 SELLER puede consultar todas las ventas, clientes e historial de inventario,
 no solamente sus propios registros. Esto coincide con la política vigente; un
 aislamiento por vendedor o sucursal requeriría nuevas reglas de negocio.
-CUSTOMER no tiene rutas para consultar ventas ni comprar por autoservicio.
+CUSTOMER puede comprar y consultar sus pedidos mediante `/orders`, con un resumen seguro del saldo de su venta vinculada. No puede consultar directamente `/sales` ni registrar cobros.
 
 ## Observaciones
 
@@ -62,7 +63,7 @@ CUSTOMER no tiene rutas para consultar ventas ni comprar por autoservicio.
 
 ## Pendientes y propuestas
 
-Los siguientes elementos no están implementados. Este listado no autoriza su
+El listado distingue funciones implementadas de pendientes. No autoriza su
 implementación ni presupone que todos formen parte del alcance del producto.
 
 | Prioridad sugerida | Trabajo | Estado / alcance |
@@ -72,7 +73,7 @@ implementación ni presupone que todos formen parte del alcance del producto.
 | Alta, antes de publicar | Política de exposición de Swagger y stock público | Resolver las observaciones anteriores y documentar los contratos elegidos |
 | Alta | Completar pruebas HTTP de permisos por ruta y rol | Incluir usuario anónimo, sesión vencida/revocada, Origin y aislamiento del perfil |
 | Implementado localmente | Recuperación de contraseña por correo | SMTP y Mailpit con formulario independiente; proveedor de producción e integración Nuxt pendientes |
-| Media | Compras de autoservicio | Pendiente explícito; diseñar carrito/pedido, reservas o descuento de stock y permisos CUSTOMER |
+| Implementado parcialmente | Compras de autoservicio | Pedidos CUSTOMER, reservas, retiro y cobros manuales disponibles; carrito persistente, envíos, pasarela y notificaciones pendientes |
 | Media | Caja: apertura, cierre y conciliación | Propuesta; los cobros actuales son registros manuales |
 | Implementado | Reportes de ventas y existencias | Resumen, ranking neto y alertas de stock; exportaciones y pantallas siguen pendientes |
 | Media | Proveedores, compras y recepción | Propuesta; actualmente hay entradas manuales de inventario |

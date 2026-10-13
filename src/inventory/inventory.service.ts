@@ -9,6 +9,7 @@ import { PrismaService } from '../database/prisma.service';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { CreateStockMovementDto, InventorySettingsDto } from './inventory.dto';
 import { stockSummary } from './stock-summary';
+import { availableQuantity, reservedQuantities } from './reservations';
 
 @Injectable()
 export class InventoryService {
@@ -24,8 +25,23 @@ export class InventoryService {
   }
 
   async get(productId: number) {
-    const product = await this.product(this.db, productId);
-    return { productId, ...stockSummary(product.inventory) };
+    return this.db.$transaction(
+      async (tx) => {
+        const product = await this.product(tx, productId);
+        const reserved =
+          (await reservedQuantities(tx, [productId])).get(productId) ?? 0;
+        return {
+          productId,
+          ...stockSummary(product.inventory),
+          reservedQuantity: reserved,
+          availableQuantity: availableQuantity(
+            product.inventory?.quantity ?? 0,
+            reserved,
+          ),
+        };
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+    );
   }
 
   settings(productId: number, dto: InventorySettingsDto) {
@@ -76,6 +92,12 @@ export class InventoryService {
       if (quantity === 0)
         throw new BadRequestException(
           'El ajuste no cambia la cantidad disponible',
+        );
+      const reserved =
+        (await reservedQuantities(tx, [productId])).get(productId) ?? 0;
+      if (resultingQuantity < reserved)
+        throw new ConflictException(
+          'El stock resultante no puede ser menor que las unidades reservadas por pedidos',
         );
       await tx.inventory.upsert({
         where: { productId },

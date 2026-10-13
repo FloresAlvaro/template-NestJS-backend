@@ -12,6 +12,7 @@ import { ProductsModule } from './products/products.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { ReportsModule } from './reports/reports.module';
+import { OrdersModule } from './orders/orders.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { ReportsModule } from './reports/reports.module';
     CustomersModule,
     SalesModule,
     ReportsModule,
+    OrdersModule,
   ],
   controllers: [],
   providers: [],

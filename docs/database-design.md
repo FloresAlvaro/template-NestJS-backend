@@ -13,6 +13,14 @@ con persistencia PostgreSQL y migraciones versionadas. El esquema Prisma y las
 migraciones son la referencia vigente. La propuesta histórica que aparece más
 abajo no describe todos los modelos actuales ni debe usarse como lista de pendientes.
 
+## Pedidos implementados
+
+`Order` pertenece a un usuario y un cliente, conserva datos históricos y puede
+vincular una única `Sale`. `OrderItem` conserva productos, precios y cantidades;
+`OrderOperation` audita transiciones e idempotencia. Las reservas se calculan
+desde pedidos PENDING no vencidos sin cambiar Inventory.quantity. Ver
+[contrato y estados](orders-api.md).
+
 ## Catálogo implementado
 
 ```mermaid

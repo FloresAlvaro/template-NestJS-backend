@@ -1,11 +1,15 @@
 import {
-  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { createHash } from 'node:crypto';
+import {
+  preparePurchase,
+  sortedPurchaseItems,
+} from '../products/purchase-lines';
+import { persistSale } from './persist-sale';
 import { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { CreateSaleDto, ListSalesDto } from './sales.dto';
@@ -15,9 +19,7 @@ import { saleInclude, serializeSale as serialize } from './sales-view';
 export class SalesService {
   constructor(private readonly db: PrismaService) {}
   create(dto: CreateSaleDto, userId: number) {
-    const items = [...dto.items].sort((a, b) => a.productId - b.productId);
-    if (new Set(items.map((item) => item.productId)).size !== items.length)
-      throw new BadRequestException('No repitas productos en la venta');
+    const items = sortedPurchaseItems(dto.items);
     const requestHash = createHash('sha256')
       .update(JSON.stringify({ customerId: dto.customerId, items }))
       .digest('hex');
@@ -44,105 +46,23 @@ export class SalesService {
         throw new ForbiddenException(
           'El usuario no está habilitado para registrar ventas',
         );
-      const lines: {
-        productId: number;
-        productName: string;
-        sku: string;
-        quantity: number;
-        unitPrice: Prisma.Decimal;
-        subtotal: Prisma.Decimal;
-        previousQuantity: number;
-      }[] = [];
-      let total = new Prisma.Decimal(0);
-      const max = new Prisma.Decimal('9999999999999999.99');
-      for (const item of items) {
-        const product = await tx.product.findUnique({
-          where: { productId: item.productId },
-          include: {
-            inventory: true,
-            subCategory: { include: { category: true } },
-          },
-        });
-        if (!product)
-          throw new NotFoundException(
-            `Producto ${item.productId} no encontrado`,
-          );
-        if (
-          !product.isActive ||
-          !product.subCategory.isActive ||
-          !product.subCategory.category.isActive
-        )
-          throw new ConflictException(
-            `${product.name} no está habilitado para venta`,
-          );
-        if (product.salePrice.toFixed(2) !== item.expectedUnitPrice)
-          throw new ConflictException(
-            `El precio de ${product.name} cambió. Actualiza los productos y revisa la venta`,
-          );
-        const previousQuantity = product.inventory?.quantity ?? 0;
-        if (previousQuantity < item.quantity)
-          throw new ConflictException(
-            `Stock insuficiente de ${product.name}: ${previousQuantity} disponibles`,
-          );
-        const subtotal = product.salePrice.mul(item.quantity);
-        total = total.add(subtotal);
-        if (subtotal.gt(max) || total.gt(max))
-          throw new BadRequestException('El total supera el máximo permitido');
-        lines.push({
-          productId: product.productId,
-          productName: product.name,
-          sku: product.sku,
-          quantity: item.quantity,
-          unitPrice: product.salePrice,
-          subtotal,
-          previousQuantity,
-        });
-      }
-      const sale = await tx.sale.create({
-        data: {
-          requestId: dto.requestId,
-          requestHash,
-          customerId: customer.customerId,
-          userId,
-          customerName: customer.name,
-          customerDocument: customer.document,
-          sellerName: seller.name,
-          total,
-          items: {
-            create: lines.map((line) => ({
-              productId: line.productId,
-              productName: line.productName,
-              sku: line.sku,
-              quantity: line.quantity,
-              unitPrice: line.unitPrice,
-              subtotal: line.subtotal,
-            })),
-          },
-        },
-        include: saleInclude,
-      });
-      for (const line of lines) {
-        const saleItem = sale.items.find(
-          (item) => item.productId === line.productId,
-        )!;
-        await tx.inventory.update({
-          where: { productId: line.productId },
-          data: { quantity: { decrement: line.quantity } },
-        });
-        await tx.stockMovement.create({
-          data: {
-            productId: line.productId,
+      const { lines, total } = await preparePurchase(tx, items);
+      return serialize(
+        await persistSale(
+          tx,
+          {
+            requestId: dto.requestId,
+            requestHash,
+            customerId: customer.customerId,
             userId,
-            saleItemId: saleItem.saleItemId,
-            type: 'EXIT',
-            quantity: -line.quantity,
-            previousQuantity: line.previousQuantity,
-            resultingQuantity: line.previousQuantity - line.quantity,
-            reason: `Venta #${sale.saleId}`,
+            customerName: customer.name,
+            customerDocument: customer.document,
+            sellerName: seller.name,
+            total,
           },
-        });
-      }
-      return serialize(sale);
+          lines,
+        ),
+      );
     });
   }
   async get(saleId: number) {

@@ -22,7 +22,7 @@ export class SaleLineDto {
   @ApiProperty() @IsInt() @Min(1) @Max(2147483647) quantity!: number;
   @ApiProperty({
     description:
-      'Price seen by the seller; a changed price requires confirmation again',
+      'Price seen by the customer or seller; a changed price requires confirmation again',
   })
   @IsString()
   @Matches(/^(0|[1-9]\d{0,15})\.\d{2}$/)

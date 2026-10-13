@@ -1,5 +1,22 @@
 # Pruebas del backend
 
+## Pedidos de autoservicio
+
+La implementación de pedidos añade 13 casos unitarios y 18 de integración.
+Validación actual: **72 unitarios en 7 suites** y **117 de integración en 10
+suites**, más 8 unitarios y 2 de integración del script de administrador. Los conteos históricos de
+abajo corresponden a ampliaciones anteriores.
+
+`test/orders.e2e-spec.ts` verifica sesiones y Origin reales, aislamiento del
+propietario, precisión monetaria, reservas, cancelación, expiración y reinicio,
+confirmación y entrega con cobros manuales. Incluye compras concurrentes entre
+clientes y ventas de mostrador, reintentos idempotentes y un fallo de base de
+datos que comprueba rollback de venta, stock, pedido y auditoría.
+
+Ejecutar las migraciones y la integración exclusivamente en una base aislada
+terminada en `_test`, siguiendo la preparación indicada abajo. Para ejecutar
+solo esta suite: `npm run test:e2e -- --runInBand orders.e2e`.
+
 Consulta también [el diagrama de ejecución de pruebas](flowcharts.md#8-cómo-funcionan-las-pruebas)
 y los flujos de negocio que verifican estas suites.
 

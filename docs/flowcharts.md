@@ -5,6 +5,9 @@ los rombos son decisiones y las flechas indican el siguiente paso. Un rollback
 deshace todos los cambios de la transacción; no revierte operaciones anteriores
 ya confirmadas. Son vistas resumidas, no sustituyen los contratos de cada API.
 
+El flujo de pedidos, reservas, preparación, cobro y retiro está en
+[pedidos de autoservicio](orders-api.md#reservas-y-ciclo-de-vida).
+
 ## 1. Permisos de una petición
 
 El guard se ejecuta antes de los DTO y del controlador. Una ruta pública de

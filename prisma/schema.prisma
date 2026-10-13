@@ -40,6 +40,7 @@ model SubCategory {
 }
 
 model Product {
+  orderItems     OrderItem[]
   image          ProductImage?
   saleItems      SaleItem[]
   inventory      Inventory?
@@ -74,20 +75,22 @@ enum Role {
 }
 
 model User {
-  passwordReset  PasswordReset?
-  saleOperations SaleOperation[]
-  sales          Sale[]
-  stockMovements StockMovement[]
-  userId         Int             @id @default(autoincrement())
-  name           String          @db.VarChar(100)
-  email          String          @unique @db.VarChar(254)
-  passwordHash   String
-  role           Role            @default(CUSTOMER)
-  isActive       Boolean         @default(true)
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  sessions       Session[]
-  customer       Customer?
+  orders          Order[]
+  orderOperations OrderOperation[]
+  passwordReset   PasswordReset?
+  saleOperations  SaleOperation[]
+  sales           Sale[]
+  stockMovements  StockMovement[]
+  userId          Int              @id @default(autoincrement())
+  name            String           @db.VarChar(100)
+  email           String           @unique @db.VarChar(254)
+  passwordHash    String
+  role            Role             @default(CUSTOMER)
+  isActive        Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  sessions        Session[]
+  customer        Customer?
 }
 
 model PasswordReset {
@@ -135,6 +138,7 @@ model StockMovement {
 }
 
 model Customer {
+  orders     Order[]
   isActive   Boolean  @default(true)
   sales      Sale[]
   customerId Int      @id @default(autoincrement())
@@ -148,6 +152,7 @@ model Customer {
 }
 
 model Sale {
+  order            Order?
   operations       SaleOperation[]
   saleId           Int             @id @default(autoincrement())
   requestId        String          @unique @db.Uuid
@@ -165,6 +170,84 @@ model Sale {
 
   @@index([createdAt, saleId])
   @@index([customerId])
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  READY
+  COMPLETED
+  CANCELLED
+  EXPIRED
+}
+
+enum OrderOperationKind {
+  CONFIRM
+  READY
+  COMPLETE
+  CANCEL
+}
+
+model Order {
+  orderId          Int              @id @default(autoincrement())
+  requestId        String           @unique @db.Uuid
+  requestHash      String           @db.VarChar(64)
+  userId           Int
+  user             User             @relation(fields: [userId], references: [userId], onDelete: Restrict)
+  customerId       Int
+  customer         Customer         @relation(fields: [customerId], references: [customerId], onDelete: Restrict)
+  customerName     String           @db.VarChar(100)
+  customerDocument String?          @db.VarChar(50)
+  status           OrderStatus      @default(PENDING)
+  total            Decimal          @db.Decimal(18, 2)
+  expiresAt        DateTime
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  confirmedAt      DateTime?
+  readyAt          DateTime?
+  completedAt      DateTime?
+  cancelledAt      DateTime?
+  saleId           Int?             @unique
+  sale             Sale?            @relation(fields: [saleId], references: [saleId], onDelete: Restrict)
+  items            OrderItem[]
+  operations       OrderOperation[]
+
+  @@index([userId, orderId])
+  @@index([customerId])
+  @@index([status, expiresAt])
+}
+
+model OrderItem {
+  orderItemId Int     @id @default(autoincrement())
+  orderId     Int
+  order       Order   @relation(fields: [orderId], references: [orderId], onDelete: Restrict)
+  productId   Int
+  product     Product @relation(fields: [productId], references: [productId], onDelete: Restrict)
+  productName String  @db.VarChar(150)
+  sku         String  @db.VarChar(64)
+  quantity    Int
+  unitPrice   Decimal @db.Decimal(18, 2)
+  subtotal    Decimal @db.Decimal(18, 2)
+
+  @@unique([orderId, productId])
+  @@index([productId, orderId])
+}
+
+model OrderOperation {
+  operationId Int                @id @default(autoincrement())
+  requestId   String             @unique @db.Uuid
+  requestHash String             @db.VarChar(64)
+  orderId     Int
+  order       Order              @relation(fields: [orderId], references: [orderId], onDelete: Restrict)
+  userId      Int
+  user        User               @relation(fields: [userId], references: [userId], onDelete: Restrict)
+  userName    String             @db.VarChar(100)
+  kind        OrderOperationKind
+  reason      String             @db.VarChar(500)
+  createdAt   DateTime           @default(now())
+
+  @@index([orderId, operationId])
+  @@index([userId])
 }
 
 model SaleItem {
