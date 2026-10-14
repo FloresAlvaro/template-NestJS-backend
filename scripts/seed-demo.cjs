@@ -63,17 +63,17 @@ function transactionServices(tx, userIds) {
       return typeof value === 'function' ? value.bind(target) : value;
     },
   });
-  const { SalesService } = require('../dist/src/sales/sales.service');
+  const { SalesService } = require('../dist/src/sales/services/sales.service');
   const {
     SaleOperationsService,
-  } = require('../dist/src/sales/sale-operations.service');
-  const { OrdersService } = require('../dist/src/orders/orders.service');
+  } = require('../dist/src/sales/services/sale-operations.service');
+  const { OrdersService } = require('../dist/src/orders/services/orders.service');
   const {
     InventoryService,
-  } = require('../dist/src/inventory/inventory.service');
+  } = require('../dist/src/inventory/services/inventory.service');
   const {
     ProductImagesService,
-  } = require('../dist/src/products/product-images.service');
+  } = require('../dist/src/products/services/product-images.service');
   return {
     sales: new SalesService(db),
     operations: new SaleOperationsService(db),
@@ -84,8 +84,8 @@ function transactionServices(tx, userIds) {
 }
 
 async function seedDemo(prisma, { adminEmail, password } = {}) {
-  const { CreateUserDto } = require('../dist/src/users/users.dto');
-  const { hashPassword } = require('../dist/src/auth/password');
+  const { CreateUserDto } = require('../dist/src/users/dto/users.dto');
+  const { hashPassword } = require('../dist/src/auth/security/password');
   if (
     typeof password !== 'string' ||
     password.length < 12 ||
@@ -201,7 +201,7 @@ async function seedDemo(prisma, { adminEmail, password } = {}) {
       ].entries()) {
         const {
           CreateCustomerDto,
-        } = require('../dist/src/customers/customers.dto');
+        } = require('../dist/src/customers/dto/customers.dto');
         const data = validate(CreateCustomerDto, {
           name:
             users[key]?.name ||
@@ -250,7 +250,7 @@ async function seedDemo(prisma, { adminEmail, password } = {}) {
       const product = (index) => products[index].productId;
       const {
         CreateStockMovementDto,
-      } = require('../dist/src/inventory/inventory.dto');
+      } = require('../dist/src/inventory/dto/inventory.dto');
       for (const dto of [
         {
           type: 'ENTRY',
@@ -280,11 +280,11 @@ async function seedDemo(prisma, { adminEmail, password } = {}) {
         SalePaymentDto,
         SaleReturnDto,
         SaleOperationDto,
-      } = require('../dist/src/sales/sales.dto');
+      } = require('../dist/src/sales/dto/sales.dto');
       const {
         CreateOrderDto,
         OrderOperationDto,
-      } = require('../dist/src/orders/orders.dto');
+      } = require('../dist/src/orders/dto/orders.dto');
       const lines = (entries) =>
         entries.map(([index, quantity]) => ({
           productId: product(index),
@@ -471,7 +471,7 @@ async function seedDemo(prisma, { adminEmail, password } = {}) {
           });
           const {
             expirePendingOrders,
-          } = require('../dist/src/orders/order-expiry.service');
+          } = require('../dist/src/orders/services/order-expiry.service');
           await expirePendingOrders(
             {
               order: {
@@ -592,7 +592,7 @@ async function main() {
     throw new Error('Configura DATABASE_URL antes de cargar los datos.');
   const { existsSync } = require('node:fs');
   const { resolve } = require('node:path');
-  if (!existsSync(resolve(__dirname, '../dist/src/sales/sales.service.js')))
+  if (!existsSync(resolve(__dirname, '../dist/src/sales/services/sales.service.js')))
     throw new Error(
       'Primero ejecuta npm run build para generar Prisma y los servicios.',
     );

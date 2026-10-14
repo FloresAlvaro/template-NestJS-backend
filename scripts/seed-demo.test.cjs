@@ -11,9 +11,9 @@ if (!url || !new URL(url).pathname.endsWith('_test'))
 process.env.DATABASE_URL = url;
 const { PrismaClient } = require('../dist/generated/prisma/client');
 const { PrismaPg } = require('@prisma/adapter-pg');
-const { hashPassword, verifyPassword } = require('../dist/src/auth/password');
-const { saleInclude, serializeSale } = require('../dist/src/sales/sales-view');
-const { reservedQuantities } = require('../dist/src/inventory/reservations');
+const { hashPassword, verifyPassword } = require('../dist/src/auth/security/password');
+const { saleInclude, serializeSale } = require('../dist/src/sales/presenters/sales-view');
+const { reservedQuantities } = require('../dist/src/inventory/utils/reservations');
 const db = new PrismaClient({
   adapter: new PrismaPg({ connectionString: url }),
 });
@@ -79,7 +79,7 @@ before(async () => {
   });
   const { Test } = require('@nestjs/testing');
   const { AppModule } = require('../dist/src/app.module');
-  const { configureApp } = require('../dist/src/configure-app');
+  const { configureApp } = require('../dist/src/config/configure-app');
   const module = await Test.createTestingModule({
     imports: [AppModule],
   }).compile();

@@ -1,12 +1,12 @@
-import { AccessGuard } from '../src/auth/access.guard';
+import { AccessGuard } from '../src/auth/guards/access.guard';
 import { allowAdmin } from './allow-admin';
 import { Test } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
-import { configureApp } from '../src/configure-app';
-import { PrismaService } from '../src/database/prisma.service';
+import { configureApp } from '../src/config/configure-app';
+import { PrismaService } from '../src/database/services/prisma.service';
 
 type CategoryResponse = { categoryId: number; name: string; isActive: boolean };
 type SubResponse = {

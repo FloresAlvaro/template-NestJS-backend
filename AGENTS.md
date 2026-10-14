@@ -29,12 +29,23 @@ versiones y comandos exactos. Docker usa Node.js 24 y PostgreSQL 17.
 | `src/inventory` | Existencias, mínimos e historial de movimientos |
 | `src/customers` | Clientes con o sin cuenta de usuario |
 | `src/sales` | Ventas, cobros manuales, reembolsos, devoluciones y anulaciones |
+| `src/orders` | Pedidos, reservas, expiración y entrega |
+| `src/config` | Configuración HTTP y orígenes confiables |
 | `src/common` | DTO, pipes y utilidades compartidas |
 | `src/database` | PrismaService y transacciones compartidas |
 | `prisma/schema.prisma` y `prisma/migrations` | Modelos y migraciones versionadas |
 | `scripts` | Seed y creación del primer administrador |
 | `test` | Pruebas de integración de la API con PostgreSQL |
 | `docs` | Contratos y explicaciones de negocio |
+
+Dentro de cada módulo, conserva el archivo `*.module.ts` en su raíz y organiza
+controladores, servicios y DTO en `controllers`, `services` y `dto`. Las reglas
+de pedidos viven en `rules`, las respuestas de ventas/pedidos en `presenters` y
+la persistencia compartida de ventas en `persistence`. Auth separa `guards`,
+`decorators`, `types`, `security` y `templates`. Mantén las pruebas unitarias
+junto al código probado; las validaciones comunes están en `src/common/tests`.
+Cuando muevas archivos, actualiza también los imports de `test` y las rutas
+compiladas que consumen los scripts de administrador y seed.
 
 El código, el esquema y las migraciones describen el estado implementado.
 `docs/database-design.md` conserva una propuesta histórica identificada como tal;

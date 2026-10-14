@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
-import { OrdersController } from './orders.controller';
-import { OrdersService } from './orders.service';
-import { OrderExpiryService } from './order-expiry.service';
+import { OrdersController } from './controllers/orders.controller';
+import { OrdersService } from './services/orders.service';
+import { OrderExpiryService } from './services/order-expiry.service';
 
 @Module({
   controllers: [OrdersController],

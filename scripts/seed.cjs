@@ -16,7 +16,7 @@ function validateCatalog(input) {
   } = require('../dist/src/products/dto/create-product.dto');
   const {
     InventorySettingsDto,
-  } = require('../dist/src/inventory/inventory.dto');
+  } = require('../dist/src/inventory/dto/inventory.dto');
   const validate = (Dto, value) => {
     const result = plainToInstance(Dto, value);
     const errors = validateSync(result, {

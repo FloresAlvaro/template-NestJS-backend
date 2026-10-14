@@ -354,6 +354,30 @@ visor Markdown compatible. El índice enlaza directamente a cada diagrama.
 
 ## Código compartido
 
+### Organización por módulos
+
+Cada área conserva su módulo NestJS (`src/products/products.module.ts`, por
+ejemplo). Dentro de cada módulo se separan `controllers`, `services`, `dto` y,
+cuando corresponda, `entities` y `utils`. Los controladores manejan HTTP y
+permisos; los servicios conservan las reglas y transacciones de negocio.
+
+- `src/auth`: además separa guard, decoradores, tipos, seguridad y plantilla de recuperación.
+- `src/orders/rules`: transiciones de pedidos; `presenters`: respuesta pública o de gestión.
+- `src/sales/presenters`: serialización y saldos; `persistence`: creación transaccional compartida.
+- `src/config`: validación global de HTTP y configuración de orígenes.
+- `src/database/services`: cliente Prisma y bloqueo compartido de escrituras.
+- `src/common`: validaciones y utilidades reutilizables entre módulos.
+
+Las pruebas unitarias acompañan al código probado, con las validaciones comunes
+en `src/common/tests`. `test` mantiene las pruebas HTTP de integración. Los
+scripts de seed y administrador apuntan a las nuevas rutas compiladas; ejecuta
+`npm run build` antes de usarlos.
+
+`src/common/utils/search-filter.ts` escapa los comodines de búsquedas literales
+de productos, clientes y ventas. `request-hash.ts` comparte el hash de solicitudes
+de ventas, operaciones y pedidos, conservando el orden y la representación JSON
+anteriores para que sigan siendo válidos los reintentos ya registrados.
+
 La validación de paginación se encuentra en `src/common/dto/pagination.dto.ts`; productos, usuarios y catálogo público usan los mismos límites. Los filtros de estado y la validación de IDs se encuentran en `src/common`. Las consultas públicas del catálogo están separadas en ShopModule/ShopService.
 
 AuthService centraliza la creación de cuentas y el reemplazo de contraseñas con revocación de sesiones. El registro público fija CUSTOMER; el controlador de usuarios mantiene la autorización de administrador. `session-cookie.ts` contiene el nombre y la lectura validada de la cookie; `config-origins.ts` comparte la configuración entre CORS y la protección de escrituras.

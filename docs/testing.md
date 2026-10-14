@@ -6,7 +6,7 @@
 ## Pedidos de autoservicio
 
 La implementación de pedidos añade 13 casos unitarios y 18 de integración.
-Última validación del 14/10/2026: **72 unitarios en 7 suites** y **127 de integración en 11
+Última validación del 14/10/2026: **81 unitarios en 9 suites** y **127 de integración en 11
 suites**, más 8 unitarios y 2 de integración del script de administrador. Los conteos históricos de
 abajo corresponden a ampliaciones anteriores.
 
@@ -57,17 +57,22 @@ en una instalación nueva.
 
 Las suites nuevas cubren:
 
-- `src/auth/access.guard.spec.ts`: permisos predeterminados, excepciones de
+- `src/common/utils/request-hash.spec.ts`: compatibilidad con hashes de ventas,
+  pagos y pedidos anteriores y distinción de cantidades e importes modificados.
+- `src/common/utils/search-filter.spec.ts`: búsqueda literal con porcentajes,
+  guiones bajos, barras invertidas, acentos y texto vacío.
+
+- `src/auth/guards/access.guard.spec.ts`: permisos predeterminados, excepciones de
   escritura, prioridad del método sobre el controlador, Origin en rutas públicas,
   sesión ausente/revocada/caducada, usuario inactivo, error de base de datos y
   expiración de la ventana de límites de recuperación.
-- `src/auth/recovery-mail.service.spec.ts`: URL y puertos inválidos, credenciales
+- `src/auth/services/recovery-mail.service.spec.ts`: URL y puertos inválidos, credenciales
   incompletas, TLS predeterminado, token en fragmento del enlace configurado,
   errores SMTP sin exponer secretos y cierre del transporte.
-- `src/sales/sales-view.spec.ts`: pagos fraccionarios exactos, deuda tras devolución,
+- `src/sales/presenters/sales-view.spec.ts`: pagos fraccionarios exactos, deuda tras devolución,
   reembolso manual pendiente, estados e historial, importes superiores al entero
   seguro de JavaScript y ausencia de hashes internos en JSON.
-- `src/reports/reports.service.spec.ts`: rechazo de períodos inválidos antes de
+- `src/reports/services/reports.service.spec.ts`: rechazo de períodos inválidos antes de
   consultar la base, límite de 366 días, conversión de zona horaria y propagación
   de errores SQL. Los agregados SQL se prueban en integración, no con mocks.
 

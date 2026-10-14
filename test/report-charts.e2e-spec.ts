@@ -4,9 +4,9 @@ import type { App } from 'supertest/types';
 import request from 'supertest';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { AppModule } from '../src/app.module';
-import { configureApp } from '../src/configure-app';
-import { PrismaService } from '../src/database/prisma.service';
-import { tokenHash } from '../src/auth/password';
+import { configureApp } from '../src/config/configure-app';
+import { PrismaService } from '../src/database/services/prisma.service';
+import { tokenHash } from '../src/auth/security/password';
 import { Role } from '../generated/prisma/client';
 
 const url = process.env.TEST_DATABASE_URL;

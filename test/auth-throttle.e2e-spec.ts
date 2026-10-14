@@ -4,7 +4,7 @@ import type { App } from 'supertest/types';
 import request from 'supertest';
 import { randomUUID } from 'node:crypto';
 import { AppModule } from '../src/app.module';
-import { configureApp } from '../src/configure-app';
+import { configureApp } from '../src/config/configure-app';
 
 const url = process.env.TEST_DATABASE_URL;
 if (!url || !new URL(url).pathname.endsWith('_test'))

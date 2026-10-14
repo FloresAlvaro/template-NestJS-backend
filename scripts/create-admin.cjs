@@ -4,10 +4,10 @@ const readline = require('node:readline/promises');
 const { Writable } = require('node:stream');
 const { PrismaClient } = require('../dist/generated/prisma/client');
 const { PrismaPg } = require('@prisma/adapter-pg');
-const { hashPassword } = require('../dist/src/auth/password');
+const { hashPassword } = require('../dist/src/auth/security/password');
 const { plainToInstance } = require('class-transformer');
 const { validateSync } = require('class-validator');
-const { RegisterDto } = require('../dist/src/auth/auth.dto');
+const { RegisterDto } = require('../dist/src/auth/dto/auth.dto');
 
 function validateAdminInput(input, confirmation) {
   const dto = plainToInstance(RegisterDto, input);
