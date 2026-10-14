@@ -243,9 +243,13 @@ async function main() {
   }
 }
 
-if (require.main === module)
-  main().catch((error) => {
+module.exports = { seed, validateCatalog };
+if (require.main === module) {
+  const run = process.argv.includes('--demo')
+    ? require('./seed-demo.cjs').main
+    : main;
+  run().catch((error) => {
     console.error('No se pudieron cargar los datos de ejemplo:', error.message);
     process.exitCode = 1;
   });
-module.exports = { seed, validateCatalog };
+}

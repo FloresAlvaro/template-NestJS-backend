@@ -202,6 +202,76 @@ docker compose up -d --build backend
 docker compose exec -e SEED_ADMIN_EMAIL=correo-de-tu-administrador@ejemplo.com backend node scripts/seed.cjs
 ```
 
+### Demo completa para revisar la interfaz
+
+El seed original (`db:seed`) sigue cargando solamente el catálogo. El modo
+`db:seed:demo` (también `npm run db:seed -- --demo`) incluye ese catálogo y añade escenarios ficticios de todos los
+flujos implementados. Usa un administrador activo existente; no crea un nuevo
+administrador ni modifica su contraseña.
+
+Después de actualizar la imagen, ejecuta desde esta carpeta:
+
+```bash
+docker compose up -d --build backend
+docker compose exec -e SEED_ADMIN_EMAIL=correo-real-de-tu-admin@ejemplo.com backend node scripts/seed-demo.cjs
+```
+
+La terminal pide una contraseña de 12 a 128 caracteres y su confirmación, sin
+mostrarla. Esa contraseña se usa para las cuatro cuentas demo; no se guarda en
+archivos ni se imprime. Para automatización puede suministrarse mediante
+`SEED_DEMO_PASSWORD`; evita escribir secretos directamente en el historial del
+shell. Con una instalación local ya compilada: configura `DATABASE_URL`,
+`SEED_ADMIN_EMAIL` y ejecuta `npm run db:seed:demo`.
+
+| Cuenta | Rol / uso |
+| --- | --- |
+| Tu administrador existente | Catálogo, inventario, usuarios, reportes y operaciones administrativas |
+| `vendedor@demo.example.com` | SELLER activo: ventas, cobros y gestión de pedidos |
+| `ana@demo.example.com` | CUSTOMER activo: reservas y pedidos propios |
+| `bruno@demo.example.com` | CUSTOMER activo: otros pedidos para comprobar aislamiento |
+| `inactivo@demo.example.com` | SELLER inactivo: rechazo de inicio de sesión |
+
+Los correos y documentos son ficticios. Para probar recuperación de contraseña
+con estas cuentas, los mensajes aparecerán en Mailpit; no son direcciones reales
+para recibir correo en producción.
+
+La carga inicial genera:
+
+- 46 productos: los 36 del catálogo original y 10 exclusivos de la demo.
+- 5 clientes: dos con cuenta, dos sin cuenta y uno inactivo.
+- 4 ilustraciones WebP de ejemplo en los productos demo. Otros quedan sin foto
+  para comprobar el estado alternativo; no se descargan imágenes externas.
+- Stock normal, bajo, agotado, reservado totalmente, y productos ocultos por
+  inactividad del producto, subcategoría o categoría.
+- Entradas, salidas y ajustes con usuario, motivo y stock anterior/resultante.
+- 15 ventas: sin cobrar, parcialmente cobradas, pagadas, pagos fraccionados en
+  efectivo/tarjeta/transferencia, devoluciones parciales y completas, reembolsos
+  pendientes y realizados, anulaciones con y sin dinero recibido.
+- 9 pedidos: pendiente, pendiente con todas las unidades reservadas, confirmado,
+  preparado sin pagar, preparado pagado, entregado, cancelado por el cliente,
+  vencido y cancelado mediante anulación de su venta.
+- Ventas en distintos días de las últimas dos semanas para revisar reportes.
+
+Las cantidades describen una base inicial vacía. Si ya existen registros, se
+conservan y la demo se añade. Las ventas, cobros, devoluciones, fotos y transiciones
+usan los servicios y validadores del backend; todos los datos se confirman en
+una misma transacción bajo el bloqueo de catálogo. Un fallo revierte la carga
+entera, incluido el catálogo inicial. Los pagos son ejemplos de registros
+manuales; no ejecutan transacciones bancarias.
+
+Repetir la demo **no restablece estados, contraseñas, fotos ni stock** y no crea
+más operaciones. Los pedidos pendientes vencen normalmente; para crear pedidos
+nuevos usa la interfaz. Un marcador de venta identifica la carga completada;
+no borres sus registros directamente. Si existen correos, SKU, documentos o
+categorías reservados de demo sin una carga completa, se informa un conflicto
+y no se reemplaza trabajo existente.
+
+Recorrido sugerido: entra como administrador, revisa Productos/Fotos/Inventario,
+Clientes, Ventas y Reportes; entra como vendedor para cobrar y preparar pedidos;
+entra como Ana o Bruno para agregar productos, crear pedidos y consultar solamente
+los propios. Comprueba el pedido preparado sin pagar (entrega bloqueada) y el
+preparado pagado (entrega disponible).
+
 Para comprobar el seed: compila, aplica las migraciones a una base temporal y
 configura `TEST_DATABASE_URL` con su URL, cuyo nombre debe terminar en `_test`.
 Ejecuta `npm run test:seed`. Las pruebas borran el catálogo de esa base de prueba;

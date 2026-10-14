@@ -23,11 +23,12 @@
     "db:migrate": "prisma migrate deploy",
     "db:migrate:dev": "prisma migrate dev",
     "db:seed": "node scripts/seed.cjs",
-    "test:seed": "node --test scripts/seed.test.cjs",
+    "test:seed": "node --test --test-concurrency=1 scripts/seed.test.cjs scripts/seed-demo.test.cjs",
     "test:unit": "jest --runInBand",
     "admin:create": "node scripts/create-admin.cjs",
     "test:admin": "node --test scripts/create-admin.test.cjs",
-    "test:admin:e2e": "node --test scripts/create-admin.integration.test.cjs"
+    "test:admin:e2e": "node --test scripts/create-admin.integration.test.cjs",
+    "db:seed:demo": "node scripts/seed-demo.cjs"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
