@@ -6,9 +6,14 @@
 ## Pedidos de autoservicio
 
 La implementación de pedidos añade 13 casos unitarios y 18 de integración.
-Última validación del 14/10/2026: **81 unitarios en 9 suites** y **127 de integración en 11
+Última validación del 14/10/2026: **81 unitarios en 9 suites** y **137 de integración en 12
 suites**, más 8 unitarios y 2 de integración del script de administrador. Los conteos históricos de
 abajo corresponden a ampliaciones anteriores.
+
+`test/purchases.e2e-spec.ts` añade 10 casos de proveedores y compras con sesiones
+reales: autorización ADMIN, validación, históricos, Decimal, recepción concurrente,
+idempotencia, cancelación, costos opcionales, desbordamiento y rollback de entradas
+y costos. Ver [contrato y alcance](purchases-api.md).
 
 `test/orders.e2e-spec.ts` verifica sesiones y Origin reales, aislamiento del
 propietario, precisión monetaria, reservas, cancelación, expiración y reinicio,

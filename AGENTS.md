@@ -30,6 +30,7 @@ versiones y comandos exactos. Docker usa Node.js 24 y PostgreSQL 17.
 | `src/customers` | Clientes con o sin cuenta de usuario |
 | `src/sales` | Ventas, cobros manuales, reembolsos, devoluciones y anulaciones |
 | `src/orders` | Pedidos, reservas, expiración y entrega |
+| `src/suppliers`, `src/purchases` | Proveedores y compras ADMIN, recepción y auditoría de entradas |
 | `src/config` | Configuración HTTP y orígenes confiables |
 | `src/common` | DTO, pipes y utilidades compartidas |
 | `src/database` | PrismaService y transacciones compartidas |
@@ -113,6 +114,10 @@ no la uses como lista de pendientes. Contrasta la documentación con la implemen
   reembolso automático al devolver productos o anular una venta.
 - Conserva ventas y operaciones como historial: no agregues edición ni borrado
   destructivo de esos registros para corregir saldos.
+- Proveedores y compras son exclusivos de ADMIN. Las compras PENDING no cambian
+  stock; solo la recepción completa lo incrementa y genera movimientos ligados
+  a sus líneas. Recepción, costos opcionales y auditoría usan una sola transacción
+  idempotente. Solo se cancelan pendientes; nunca se elimina una compra recibida.
 
 ## Base de datos, seed y Docker
 

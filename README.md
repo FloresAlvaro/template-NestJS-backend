@@ -2,7 +2,7 @@
 
 API NestJS con PostgreSQL y Prisma. Implementa catálogo con fotos, inventario,
 clientes, ventas, cobros manuales, reembolsos, devoluciones, anulaciones,
-pedidos de retiro, sesiones, roles, recuperación de contraseña y reportes.
+pedidos de retiro, proveedores, compras, sesiones, roles, recuperación de contraseña y reportes.
 
 ## Estado del proyecto — 14/10/2026
 
@@ -14,13 +14,14 @@ Las consultas son ADMIN y no constituyen cierre de caja ni cálculo de ganancias
 - [Reportes y contratos](docs/reports-api.md).
 - [Imágenes de productos](docs/product-images-api.md).
 - [Pedidos y reservas](docs/orders-api.md).
+- [Proveedores, compras y recepción de mercadería](docs/purchases-api.md).
 - [Recuperación de contraseña](docs/password-recovery-api.md).
 - [Permisos y pendientes reales](docs/permissions-and-backlog.md).
 - [Pruebas y última validación](docs/testing.md).
 - [Frontend: instalación y uso](../template-NuxtJS-frontend/README.md) (checkout hermano).
 
 Pendientes principales: búsqueda/filtros públicos, caja, comprobantes/exportaciones,
-proveedores/compras, carrito persistente y notificaciones. Pagos en línea, envíos,
+recepciones parciales, devoluciones a proveedores, carrito persistente y notificaciones. Pagos en línea, envíos,
 descuentos, impuestos y facturación fiscal requieren definir el alcance comercial.
 Antes de producción falta configurar y verificar la operación indicada en el backlog.
 

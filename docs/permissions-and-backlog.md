@@ -6,7 +6,7 @@ y el [índice de diagramas](diagrams/README.md).
 
 ## Resultado
 
-El backend declara actualmente **70 rutas en 14 controladores**. Reportes incluye
+El backend declara actualmente **79 rutas en 16 controladores**. Reportes incluye
 siete lecturas exclusivas de ADMIN. Imágenes de gestión permite GET a ADMIN/SELLER
 y POST/DELETE a ADMIN; la lectura pública valida la activación de todos los padres.
 Recuperación de contraseña y pedidos están integrados con Nuxt. Ver
@@ -14,7 +14,7 @@ Recuperación de contraseña y pedidos están integrados con Nuxt. Ver
 [recuperación](password-recovery-api.md) e [imágenes](product-images-api.md).
 
 La revisión inicial de 49 rutas se conserva abajo como evidencia histórica;
-no equivale a una comprobación HTTP exhaustiva de las 70 rutas actuales.
+no equivale a una comprobación HTTP exhaustiva de las 79 rutas actuales.
 
 El guard global permite GET/HEAD/OPTIONS a ADMIN y SELLER, y el resto de métodos
 solo a ADMIN, salvo decoradores explícitos. La metadata del método prevalece
@@ -36,6 +36,8 @@ Todas las rutas de esta tabla llevan el prefijo `/api`.
 | `/sales`, `/sales/:id` | ADMIN/SELLER | POST raíz y `:id/payments`: ADMIN/SELLER; `:id/refunds`, `:id/returns`, `:id/cancel`: ADMIN |
 | `/orders`, `/orders/:id` | ADMIN/SELLER: todos; CUSTOMER: propios | POST raíz: CUSTOMER; `:id/confirm`, `:id/ready`, `:id/complete`: ADMIN/SELLER; `:id/cancel`: ADMIN/SELLER y CUSTOMER propietario, solo PENDING |
 | `/users` | ADMIN | ADMIN: POST raíz, PATCH `:id`, POST `:id/password` |
+| `/suppliers`, `/suppliers/:id` | ADMIN | ADMIN: POST raíz, PATCH por ID (incluye baja lógica) |
+| `/purchases`, `/purchases/:id` | ADMIN | ADMIN: POST raíz, `:id/receive`, `:id/cancel` |
 | `/auth/me` | ADMIN/SELLER/CUSTOMER | — |
 | `/auth/profile`, `/auth/password`, `/auth/logout` | — | ADMIN/SELLER/CUSTOMER, sobre su propia sesión/cuenta |
 | `/auth/customer` | CUSTOMER, perfil propio | PATCH: CUSTOMER, perfil propio |
@@ -86,7 +88,7 @@ implementación ni presupone que todos formen parte del alcance del producto.
 | Media | Caja: apertura, cierre y conciliación | Propuesta; los cobros actuales son registros manuales |
 | Implementado | Reportes de ventas y existencias | Siete endpoints y seis gráficos Nuxt con tablas exactas y filtros; exportaciones, metas y rentabilidad pendientes |
 | Media | Comprobantes y exportaciones | Impresión de comprobantes comerciales y descarga CSV/PDF pendientes; no equivalen a facturación fiscal |
-| Media | Proveedores, compras y recepción | Propuesta; actualmente hay entradas manuales de inventario |
+| Implementado | Proveedores, compras y recepción | ADMIN: compras pendientes, recepción completa idempotente con entradas auditadas y costos opcionales; ver [contrato](purchases-api.md). Parciales, devoluciones y cuentas por pagar pendientes |
 | Según necesidad comercial | Descuentos e impuestos | No incluidos actualmente; requieren reglas monetarias e historial |
 | Según necesidad comercial | Facturación fiscal y notas de crédito | No implementadas; definir requisitos e integración antes de diseñar |
 | Según necesidad comercial | Pasarela de pagos | No implementada; requiere conciliación, webhooks e idempotencia externa |

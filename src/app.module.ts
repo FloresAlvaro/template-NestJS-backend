@@ -13,6 +13,8 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { ReportsModule } from './reports/reports.module';
 import { OrdersModule } from './orders/orders.module';
+import { SuppliersModule } from './suppliers/suppliers.module';
+import { PurchasesModule } from './purchases/purchases.module';
 
 @Module({
   imports: [
@@ -32,6 +34,8 @@ import { OrdersModule } from './orders/orders.module';
     SalesModule,
     ReportsModule,
     OrdersModule,
+    SuppliersModule,
+    PurchasesModule,
   ],
   controllers: [],
   providers: [],

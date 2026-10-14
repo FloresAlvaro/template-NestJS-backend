@@ -40,6 +40,7 @@ model SubCategory {
 }
 
 model Product {
+  purchaseItems  PurchaseItem[]
   orderItems     OrderItem[]
   image          ProductImage?
   saleItems      SaleItem[]
@@ -75,22 +76,24 @@ enum Role {
 }
 
 model User {
-  orders          Order[]
-  orderOperations OrderOperation[]
-  passwordReset   PasswordReset?
-  saleOperations  SaleOperation[]
-  sales           Sale[]
-  stockMovements  StockMovement[]
-  userId          Int              @id @default(autoincrement())
-  name            String           @db.VarChar(100)
-  email           String           @unique @db.VarChar(254)
-  passwordHash    String
-  role            Role             @default(CUSTOMER)
-  isActive        Boolean          @default(true)
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  sessions        Session[]
-  customer        Customer?
+  purchases          Purchase[]
+  purchaseOperations PurchaseOperation[]
+  orders             Order[]
+  orderOperations    OrderOperation[]
+  passwordReset      PasswordReset?
+  saleOperations     SaleOperation[]
+  sales              Sale[]
+  stockMovements     StockMovement[]
+  userId             Int                 @id @default(autoincrement())
+  name               String              @db.VarChar(100)
+  email              String              @unique @db.VarChar(254)
+  passwordHash       String
+  role               Role                @default(CUSTOMER)
+  isActive           Boolean             @default(true)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  sessions           Session[]
+  customer           Customer?
 }
 
 model PasswordReset {
@@ -118,6 +121,8 @@ enum StockMovementType {
 }
 
 model StockMovement {
+  purchaseItemId    Int?               @unique
+  purchaseItem      PurchaseItem?      @relation(fields: [purchaseItemId], references: [purchaseItemId], onDelete: Restrict)
   operationItemId   Int?               @unique
   operationItem     SaleOperationItem? @relation(fields: [operationItemId], references: [operationItemId], onDelete: Restrict)
   saleItemId        Int?               @unique
@@ -135,6 +140,95 @@ model StockMovement {
   createdAt         DateTime           @default(now())
 
   @@index([productId, stockMovementId])
+}
+
+model Supplier {
+  supplierId     Int        @id @default(autoincrement())
+  name           String     @db.VarChar(150)
+  normalizedName String     @unique @db.VarChar(150)
+  document       String?    @unique @db.VarChar(50)
+  contactName    String?    @db.VarChar(100)
+  email          String?    @db.VarChar(254)
+  phone          String?    @db.VarChar(30)
+  address        String?    @db.VarChar(300)
+  notes          String?    @db.VarChar(1000)
+  isActive       Boolean    @default(true)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  purchases      Purchase[]
+}
+
+enum PurchaseStatus {
+  PENDING
+  RECEIVED
+  CANCELLED
+}
+
+enum PurchaseOperationKind {
+  RECEIVE
+  CANCEL
+}
+
+model Purchase {
+  purchaseId       Int                 @id @default(autoincrement())
+  requestId        String              @unique @db.Uuid
+  requestHash      String              @db.VarChar(64)
+  supplierId       Int
+  supplier         Supplier            @relation(fields: [supplierId], references: [supplierId], onDelete: Restrict)
+  supplierName     String              @db.VarChar(150)
+  supplierDocument String?             @db.VarChar(50)
+  userId           Int
+  user             User                @relation(fields: [userId], references: [userId], onDelete: Restrict)
+  userName         String              @db.VarChar(100)
+  reference        String?             @db.VarChar(100)
+  notes            String?             @db.VarChar(1000)
+  status           PurchaseStatus      @default(PENDING)
+  total            Decimal             @db.Decimal(18, 2)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  receivedAt       DateTime?
+  cancelledAt      DateTime?
+  items            PurchaseItem[]
+  operations       PurchaseOperation[]
+
+  @@index([supplierId, purchaseId])
+  @@index([status, purchaseId])
+  @@index([userId])
+}
+
+model PurchaseItem {
+  purchaseItemId Int            @id @default(autoincrement())
+  purchaseId     Int
+  purchase       Purchase       @relation(fields: [purchaseId], references: [purchaseId], onDelete: Restrict)
+  productId      Int
+  product        Product        @relation(fields: [productId], references: [productId], onDelete: Restrict)
+  productName    String         @db.VarChar(150)
+  sku            String         @db.VarChar(64)
+  quantity       Int
+  unitCost       Decimal        @db.Decimal(18, 2)
+  subtotal       Decimal        @db.Decimal(18, 2)
+  stockMovement  StockMovement?
+
+  @@unique([purchaseId, productId])
+  @@index([productId])
+}
+
+model PurchaseOperation {
+  operationId Int                   @id @default(autoincrement())
+  requestId   String                @unique @db.Uuid
+  requestHash String                @db.VarChar(64)
+  purchaseId  Int
+  purchase    Purchase              @relation(fields: [purchaseId], references: [purchaseId], onDelete: Restrict)
+  userId      Int
+  user        User                  @relation(fields: [userId], references: [userId], onDelete: Restrict)
+  userName    String                @db.VarChar(100)
+  kind        PurchaseOperationKind
+  reason      String                @db.VarChar(500)
+  updateCost  Boolean               @default(false)
+  createdAt   DateTime              @default(now())
+
+  @@unique([purchaseId, kind])
+  @@index([userId])
 }
 
 model Customer {

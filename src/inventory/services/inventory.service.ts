@@ -135,6 +135,7 @@ export class InventoryService {
           include: {
             user: { select: { userId: true, name: true } },
             saleItem: { select: { saleId: true } },
+            purchaseItem: { select: { purchaseId: true } },
             operationItem: {
               select: { operation: { select: { saleId: true } } },
             },
