@@ -14,14 +14,17 @@ de correo o dominio. No hay relay externo configurado.
 Con Docker Desktop activo, ejecuta `docker compose up -d --build backend`.
 El arranque aplica migraciones y levanta Mailpit; PostgreSQL conserva su volumen.
 
-1. Abre http://localhost:3001/api/auth/reset-password.
+1. Abre http://localhost:3000/forgot-password.
 2. Escribe el correo de una cuenta activa que ya exista en la tienda.
 3. Abre http://localhost:8025 y busca el mensaje de recuperación.
 4. Abre el enlace y establece una contraseña de 12 a 128 caracteres.
 5. Inicia sesión con la nueva contraseña. Las sesiones anteriores se revocan;
    la recuperación no inicia sesión automáticamente.
 
-El formulario lo sirve el backend; la integración en Nuxt sigue pendiente.
+Nuxt integra solicitud y confirmación. PASSWORD_RESET_URL apunta por defecto a
+http://localhost:3000/reset-password; ajusta el origen si cambia el puerto.
+El formulario independiente del backend sigue disponible en
+http://localhost:3001/api/auth/reset-password como alternativa.
 Los mensajes de Mailpit son temporales y se limitan a 100; sus puertos web y SMTP
 solo se publican en 127.0.0.1.
 

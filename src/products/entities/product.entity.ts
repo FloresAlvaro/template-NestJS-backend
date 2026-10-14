@@ -1,6 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class ProductEntity {
+  @ApiProperty({ minimum: 0 }) reservedQuantity!: number;
+  @ApiProperty({ minimum: 0 }) availableQuantity!: number;
   @ApiProperty({
     type: String,
     nullable: true,

@@ -1,3 +1,7 @@
+import {
+  availableQuantity,
+  reservedQuantities,
+} from '../inventory/reservations';
 import { withStock } from '../inventory/stock-summary';
 import { serializePrice } from '../common/utils/serialize-price';
 import { activeStatusWhere } from '../common/utils/status-filter';
@@ -21,13 +25,30 @@ export class ProductsService {
       inventory: { quantity: number; minStock: number } | null;
       image: { productId: number } | null;
     },
+    reserved = 0,
   ) {
     const { image, ...fields } = product;
     return {
       ...serializePrice(withStock(fields)),
+      reservedQuantity: reserved,
+      availableQuantity: availableQuantity(
+        product.inventory?.quantity ?? 0,
+        reserved,
+      ),
       imageUrl: image ? `/api/products/${product.productId}/image` : null,
       cost: product.cost.toFixed(2),
     };
+  }
+
+  private async serializeCurrent(
+    tx: Prisma.TransactionClient,
+    product: Parameters<ProductsService['serialize']>[0],
+  ) {
+    const reserved =
+      (await reservedQuantities(tx, [product.productId])).get(
+        product.productId,
+      ) ?? 0;
+    return this.serialize(product, reserved);
   }
 
   private async requireParent(tx: Prisma.TransactionClient, id: number) {
@@ -75,7 +96,8 @@ export class ProductsService {
     return this.prisma.catalogWrite(async (tx) => {
       await this.requireParent(tx, dto.subCategoryId);
       await this.ensureUnique(tx, dto.sku, dto.barcode);
-      return this.serialize(
+      return this.serializeCurrent(
+        tx,
         await tx.product.create({
           data: { ...dto, inventory: { create: {} } },
           include: { inventory: true, image: { select: { productId: true } } },
@@ -134,29 +156,39 @@ export class ProductsService {
         is: { quantity: { gt: this.prisma.inventory.fields.minStock } },
       };
     }
-    const [items, total] = await this.prisma.$transaction(
-      [
-        this.prisma.product.findMany({
+    return this.prisma.$transaction(
+      async (tx) => {
+        const items = await tx.product.findMany({
           include: { inventory: true, image: { select: { productId: true } } },
           where,
           orderBy: { productId: 'asc' },
           skip: (page - 1) * limit,
           take: limit,
-        }),
-        this.prisma.product.count({ where }),
-      ],
+        });
+        const total = await tx.product.count({ where });
+        const reserved = await reservedQuantities(
+          tx,
+          items.map((item) => item.productId),
+        );
+        return {
+          items: items.map((item) =>
+            this.serialize(item, reserved.get(item.productId) ?? 0),
+          ),
+          total,
+          page,
+          limit,
+        };
+      },
       { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
     );
-    return {
-      items: items.map((item) => this.serialize(item)),
-      total,
-      page,
-      limit,
-    };
   }
 
   async findOne(id: number) {
-    return this.serialize(await this.requireProduct(this.prisma, id));
+    return this.prisma.$transaction(
+      async (tx) =>
+        this.serializeCurrent(tx, await this.requireProduct(tx, id)),
+      { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+    );
   }
 
   update(id: number, dto: UpdateProductDto) {
@@ -168,7 +200,8 @@ export class ProductsService {
           dto.subCategoryId ?? product.subCategoryId,
         );
       await this.ensureUnique(tx, dto.sku, dto.barcode, id);
-      return this.serialize(
+      return this.serializeCurrent(
+        tx,
         await tx.product.update({
           where: { productId: id },
           data: dto,
@@ -183,7 +216,8 @@ export class ProductsService {
       const product = await this.requireProduct(tx, id);
       if (!product.isActive)
         throw new ConflictException('Product is already inactive');
-      return this.serialize(
+      return this.serializeCurrent(
+        tx,
         await tx.product.update({
           where: { productId: id },
           include: { inventory: true, image: { select: { productId: true } } },
@@ -199,7 +233,8 @@ export class ProductsService {
       if (product.isActive)
         throw new ConflictException('Product is already active');
       await this.requireParent(tx, product.subCategoryId);
-      return this.serialize(
+      return this.serializeCurrent(
+        tx,
         await tx.product.update({
           where: { productId: id },
           include: { inventory: true, image: { select: { productId: true } } },

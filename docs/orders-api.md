@@ -96,13 +96,15 @@ procesa dinero automáticamente. Ver [ventas y clientes](customers-sales-api.md)
 
 ## Disponibilidad e impacto en el frontend
 
-`GET /api/products/:id/inventory` añade `reservedQuantity` y `availableQuantity`.
+`GET /api/products`, su detalle, respuestas de escritura y
+`GET /api/products/:id/inventory` incluyen `reservedQuantity` y `availableQuantity`.
 El catálogo público `/api/shop/products` y su detalle añaden `availableQuantity`.
 `quantity`, `minStock` y `stockStatus` conservan su significado de stock físico.
 Disponibilidad = stock físico menos reservas PENDING no vencidas.
 El frontend debe usar `availableQuantity` para compras y tratar 409 como petición
 de actualizar precio o existencias. El servidor vuelve a validarlos.
-Las pantallas de pedidos y botones de preparación/entrega requieren integración.
+Nuxt integra creación desde Catálogo, Mis pedidos para clientes y gestión de
+confirmación, preparación y entrega para ADMIN/SELLER. Reportes es exclusivo de ADMIN.
 
 ## Reintentos y persistencia
 

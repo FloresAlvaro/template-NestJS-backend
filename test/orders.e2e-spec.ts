@@ -262,6 +262,26 @@ describe('Customer pickup orders and reservations (PostgreSQL)', () => {
           .expect(200)
       ).body,
     ).toMatchObject({ quantity: 5, availableQuantity: 2 });
+    const detail = await get('/api/products/' + productId, 'SELLER').expect(
+      200,
+    );
+    expect(detail.body).toMatchObject({
+      quantity: 5,
+      reservedQuantity: 3,
+      availableQuantity: 2,
+    });
+    const list = await get('/api/products?limit=100', 'SELLER').expect(200);
+    expect(
+      (
+        list.body as {
+          items: {
+            productId: number;
+            reservedQuantity: number;
+            availableQuantity: number;
+          }[];
+        }
+      ).items.find((item) => item.productId === productId),
+    ).toMatchObject({ reservedQuantity: 3, availableQuantity: 2 });
   });
 
   it('rejects injected identities, stale prices, duplicate items and unavailable products', async () => {

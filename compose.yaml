@@ -44,7 +44,7 @@ services:
       SMTP_SECURE: "false"
       SMTP_REQUIRE_TLS: "false"
       MAIL_FROM: no-reply@tienda.local
-      PASSWORD_RESET_URL: http://localhost:3001/api/auth/reset-password
+      PASSWORD_RESET_URL: "${PASSWORD_RESET_URL:-http://localhost:3000/reset-password}"
     ports:
       - "127.0.0.1:3001:3001"
     depends_on:

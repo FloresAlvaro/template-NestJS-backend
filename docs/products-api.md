@@ -100,3 +100,13 @@ La migración `20261012160000_products` agrega Product y su clave foránea sin
 alterar las categorías existentes. Incluye índices únicos de SKU y código de barras,
 índice `(subCategoryId, isActive)` y restricciones SQL de importes no negativos y
 SKU canónico. El borrado físico de subcategorías con productos queda restringido.
+
+
+## Stock físico y reservas
+
+Las respuestas de productos incluyen quantity (stock físico), reservedQuantity
+(reservas PENDING no vencidas) y availableQuantity (físico menos reservas, mínimo
+cero). El listado y detalle leen productos y reservas en la misma transacción
+RepeatableRead. Los filtros availability y stockStatus mantienen su significado
+de stock físico respecto a minStock; no filtran por reservas. El frontend usa
+availableQuantity para seleccionar unidades en ventas y muestra las tres cantidades.
