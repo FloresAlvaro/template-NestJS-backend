@@ -1,4 +1,4 @@
-# Permisos y pendientes — 13 de octubre de 2026
+# Permisos y pendientes — 14 de octubre de 2026
 
 Ver [flujo de permisos](flowcharts.md#1-permisos-de-una-petición),
 [UML de usuarios y sesiones](diagrams/uml-classes.md#usuarios-sesiones)
@@ -6,17 +6,15 @@ y el [índice de diagramas](diagrams/README.md).
 
 ## Resultado
 
-Actualización posterior a la revisión inicial: se añadieron cuatro rutas de
-reportes exclusivas de ADMIN, tres rutas de imágenes de gestión (GET para
-ADMIN/SELLER y POST/DELETE para ADMIN), y una lectura pública de imágenes que
-valida la activación de todos los padres. La recuperación local agrega dos POST
-públicos con Origin y límite de intentos, y un GET de formulario independiente.
-Los pedidos de autoservicio añaden siete rutas con permisos explícitos y aislamiento por propietario. Ahora hay 67 rutas. Ver [pedidos](orders-api.md),
-[reportes](reports-api.md) e [imágenes](product-images-api.md).
+El backend declara actualmente **70 rutas en 14 controladores**. Reportes incluye
+siete lecturas exclusivas de ADMIN. Imágenes de gestión permite GET a ADMIN/SELLER
+y POST/DELETE a ADMIN; la lectura pública valida la activación de todos los padres.
+Recuperación de contraseña y pedidos están integrados con Nuxt. Ver
+[pedidos](orders-api.md), [reportes](reports-api.md),
+[recuperación](password-recovery-api.md) e [imágenes](product-images-api.md).
 
-Se revisaron las 49 rutas declaradas por los 10 controladores, el registro global
-de `AccessGuard`, los decoradores y el acceso al perfil propio. No se detectaron
-rutas de negocio sin la autorización exigida por las reglas actuales.
+La revisión inicial de 49 rutas se conserva abajo como evidencia histórica;
+no equivale a una comprobación HTTP exhaustiva de las 70 rutas actuales.
 
 El guard global permite GET/HEAD/OPTIONS a ADMIN y SELLER, y el resto de métodos
 solo a ADMIN, salvo decoradores explícitos. La metadata del método prevalece
@@ -43,6 +41,10 @@ Todas las rutas de esta tabla llevan el prefijo `/api`.
 | `/auth/customer` | CUSTOMER, perfil propio | PATCH: CUSTOMER, perfil propio |
 | `/auth/login`, `/auth/register` | — | Públicas, con Origin autorizado y límite de intentos; registro fija CUSTOMER |
 | `/shop/products`, `/shop/products/:id` | Públicas, solo catálogo activo y sin costos | No existen |
+| `/products/:id/image` | ADMIN/SELLER | POST/DELETE: ADMIN |
+| `/shop/products/:id/image` | Pública, solo catálogo activo | No existen |
+| `/reports/sales`, `/reports/top-products`, `/reports/sales-series`, `/reports/sellers`, `/reports/payment-methods`, `/reports/inventory`, `/reports/low-stock` | ADMIN | No existen |
+| `/auth/forgot-password`, `/auth/reset-password` | GET reset-password: formulario público | POST: públicas, con Origin y límite de intentos |
 | `/health` | Pública | No existen |
 
 SELLER puede consultar todas las ventas, clientes e historial de inventario,
@@ -75,17 +77,21 @@ implementación ni presupone que todos formen parte del alcance del producto.
 | Alta, antes de publicar | Resolver dependencias vulnerables restantes | Ver `dependency-security.md`; evitar retrocesos incompatibles de Prisma/Jest |
 | Alta, antes de publicar | Límite centralizado de login/registro | El actual es local a cada proceso; diseñar proxy de confianza sin habilitar `trust proxy` indiscriminadamente |
 | Alta, antes de publicar | Política de exposición de Swagger y stock público | Resolver las observaciones anteriores y documentar los contratos elegidos |
+| Alta, antes de publicar | Operación de producción | Configurar HTTPS, correo real, monitoreo, copias de seguridad y verificar restauración |
+| Media | Automatización frontend y CI | Frontend dispone de typecheck/build y revisión manual; no hay suite automatizada de navegador ni workflows CI versionados |
 | Alta | Completar pruebas HTTP de permisos por ruta y rol | Incluir usuario anónimo, sesión vencida/revocada, Origin y aislamiento del perfil |
-| Implementado localmente | Recuperación de contraseña por correo | SMTP y Mailpit con formulario independiente; proveedor de producción e integración Nuxt pendientes |
+| Implementado localmente | Recuperación de contraseña por correo | SMTP/Mailpit y pantallas Nuxt implementados; proveedor de producción y estrategia de entrega/reintentos pendientes |
 | Implementado parcialmente | Compras de autoservicio | Pedidos CUSTOMER, reservas, retiro y cobros manuales disponibles; carrito persistente, envíos, pasarela y notificaciones pendientes |
+| Alta | Búsqueda y filtros del catálogo público | Actualmente solo paginación; búsqueda, categoría, precio y disponibilidad pendientes |
 | Media | Caja: apertura, cierre y conciliación | Propuesta; los cobros actuales son registros manuales |
-| Implementado | Reportes de ventas y existencias | Resumen, ranking neto y alertas de stock; exportaciones y pantallas siguen pendientes |
+| Implementado | Reportes de ventas y existencias | Siete endpoints y seis gráficos Nuxt con tablas exactas y filtros; exportaciones, metas y rentabilidad pendientes |
+| Media | Comprobantes y exportaciones | Impresión de comprobantes comerciales y descarga CSV/PDF pendientes; no equivalen a facturación fiscal |
 | Media | Proveedores, compras y recepción | Propuesta; actualmente hay entradas manuales de inventario |
 | Según necesidad comercial | Descuentos e impuestos | No incluidos actualmente; requieren reglas monetarias e historial |
 | Según necesidad comercial | Facturación fiscal y notas de crédito | No implementadas; definir requisitos e integración antes de diseñar |
 | Según necesidad comercial | Pasarela de pagos | No implementada; requiere conciliación, webhooks e idempotencia externa |
 | Según necesidad comercial | Sucursales, moneda múltiple o productos por peso | Fuera del modelo actual; requieren rediseño explícito |
-| Implementado por solicitud | Imágenes de productos | Una foto validada por producto, persistida en PostgreSQL; integración frontend pendiente |
+| Implementado por solicitud | Imágenes de productos | Una foto validada por producto en PostgreSQL; catálogo y carga/reemplazo/eliminación en Nuxt implementados |
 
 Inventario, sesiones, roles, clientes, ventas, cobros manuales, reembolsos,
 devoluciones y anulaciones ya están implementados: no son pendientes.

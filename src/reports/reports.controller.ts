@@ -3,7 +3,11 @@ import { ApiCookieAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Role } from '../../generated/prisma/client';
 import { Roles } from '../auth/access.decorators';
 import { PaginationDto } from '../common/dto/pagination.dto';
-import { ReportPeriodDto } from './reports.dto';
+import {
+  ReportPeriodDto,
+  ReportSeriesDto,
+  TopProductsReportDto,
+} from './reports.dto';
 import { ReportsService } from './reports.service';
 
 @ApiTags('Reports')
@@ -23,10 +27,35 @@ export class ReportsController {
 
   @Get('top-products')
   @ApiOperation({
-    summary: 'Top 100 products by net units sold in [from, to); ADMIN only',
+    summary:
+      'Top 100 products by net units or amount in [from, to); ADMIN only',
   })
-  topProducts(@Query() dto: ReportPeriodDto) {
+  topProducts(@Query() dto: TopProductsReportDto) {
     return this.reports.topProducts(dto);
+  }
+
+  @Get('sales-series')
+  @ApiOperation({
+    summary: 'Daily/monthly current net sales, America/La_Paz; ADMIN only',
+  })
+  salesSeries(@Query() dto: ReportSeriesDto) {
+    return this.reports.salesSeries(dto);
+  }
+
+  @Get('sellers')
+  @ApiOperation({
+    summary: 'Top 100 sellers by current net sales in [from, to); ADMIN only',
+  })
+  sellers(@Query() dto: ReportPeriodDto) {
+    return this.reports.sellers(dto);
+  }
+
+  @Get('payment-methods')
+  @ApiOperation({
+    summary: 'Gross receipts by operation date and payment method; ADMIN only',
+  })
+  paymentMethods(@Query() dto: ReportPeriodDto) {
+    return this.reports.paymentMethods(dto);
   }
 
   @Get('inventory')

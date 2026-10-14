@@ -19,8 +19,10 @@ deben revisarse al contratar según el volumen real.
 
 El backend ya implementa tokens aleatorios guardados como hash, expiración de
 15 minutos, uso único atómico, límites y revocación de sesiones al cambiar la
-contraseña. Incluye formulario independiente. Integración Nuxt y estrategia de
-entrega de producción siguen pendientes. No registrar tokens ni enlaces en logs.
+contraseña. Nuxt integra `/forgot-password` y `/reset-password`; el formulario
+independiente del backend permanece como alternativa. La configuración de correo
+real y la estrategia de entrega/reintentos de producción siguen pendientes.
+No registrar tokens ni enlaces en logs.
 
 Documentación consultada el 13/10/2026:
 

@@ -1,7 +1,28 @@
 # Backend de gestión de productos
 
-API NestJS con PostgreSQL y Prisma. Actualmente implementa categorías,
-subcategorías, productos, inventario, clientes, ventas, cobros y autenticación.
+API NestJS con PostgreSQL y Prisma. Implementa catálogo con fotos, inventario,
+clientes, ventas, cobros manuales, reembolsos, devoluciones, anulaciones,
+pedidos de retiro, sesiones, roles, recuperación de contraseña y reportes.
+
+## Estado del proyecto — 14/10/2026
+
+El frontend Nuxt integra estos flujos. Los reportes disponen de siete endpoints
+para seis gráficos: evolución diaria/mensual, productos por unidades o importe,
+vendedores, métodos de cobro, estado del stock y existencias frente al mínimo.
+Las consultas son ADMIN y no constituyen cierre de caja ni cálculo de ganancias.
+
+- [Reportes y contratos](docs/reports-api.md).
+- [Imágenes de productos](docs/product-images-api.md).
+- [Pedidos y reservas](docs/orders-api.md).
+- [Recuperación de contraseña](docs/password-recovery-api.md).
+- [Permisos y pendientes reales](docs/permissions-and-backlog.md).
+- [Pruebas y última validación](docs/testing.md).
+- [Frontend: instalación y uso](../template-NuxtJS-frontend/README.md) (checkout hermano).
+
+Pendientes principales: búsqueda/filtros públicos, caja, comprobantes/exportaciones,
+proveedores/compras, carrito persistente y notificaciones. Pagos en línea, envíos,
+descuentos, impuestos y facturación fiscal requieren definir el alcance comercial.
+Antes de producción falta configurar y verificar la operación indicada en el backlog.
 
 Para entender su funcionamiento, consulta el [índice de diagramas de flujo y UML](docs/diagrams/README.md)
 de permisos, catálogo, usuarios, pedidos, ventas, recuperación de contraseña y pruebas.
@@ -317,7 +338,7 @@ Con TEST_DATABASE_URL apuntando a una base independiente terminada en `_test`, e
 La revisión del 13/10/2026 actualizó las dependencias compatibles y eliminó los
 hallazgos críticos. Consulta las versiones, excepciones y avisos restantes en
 [seguridad de dependencias](docs/dependency-security.md).
-La matriz de acceso de las 49 rutas, sus comprobaciones y las funcionalidades
+La matriz de acceso actual, las comprobaciones históricas y las funcionalidades
 pendientes están en [permisos y pendientes](docs/permissions-and-backlog.md).
 
 ## Diagramas y UML

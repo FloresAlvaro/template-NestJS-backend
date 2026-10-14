@@ -13,7 +13,7 @@ español con el usuario y conserva los nombres de código y contratos en inglés
 - Prefiere cambios concretos y pequeños. Centraliza lógica repetida cuando tenga
   las mismas reglas; conserva separadas las reglas propias de cada entidad.
 - No agregues funcionalidades pendientes por iniciativa propia. Las imágenes de
-  productos están expresamente pendientes hasta que el usuario solicite retomarlas.
+  productos ya están implementadas e integradas; conserva sus validaciones y permisos.
 
 ## Stack y estructura
 
@@ -36,10 +36,9 @@ versiones y comandos exactos. Docker usa Node.js 24 y PostgreSQL 17.
 | `test` | Pruebas de integración de la API con PostgreSQL |
 | `docs` | Contratos y explicaciones de negocio |
 
-El código, el esquema y las migraciones describen el estado implementado. Algunas
-secciones históricas del README y de `docs/database-design.md` todavía describen
-inventario, autenticación o ventas como pendientes. Contrasta esas afirmaciones
-con la implementación y corrige la documentación afectada por tu tarea.
+El código, el esquema y las migraciones describen el estado implementado.
+`docs/database-design.md` conserva una propuesta histórica identificada como tal;
+no la uses como lista de pendientes. Contrasta la documentación con la implementación.
 
 ## Arquitectura y contratos
 

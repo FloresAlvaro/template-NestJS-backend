@@ -23,6 +23,15 @@ describe('Report period boundaries', () => {
       await expect(service.topProducts({ from, to })).rejects.toThrow(
         BadRequestException,
       );
+      await expect(
+        service.salesSeries({ from, to, group: 'DAY' }),
+      ).rejects.toThrow(BadRequestException);
+      await expect(service.sellers({ from, to })).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(service.paymentMethods({ from, to })).rejects.toThrow(
+        BadRequestException,
+      );
       expect(query).not.toHaveBeenCalled();
     },
   );

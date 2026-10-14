@@ -6,7 +6,7 @@
 ## Pedidos de autoservicio
 
 La implementación de pedidos añade 13 casos unitarios y 18 de integración.
-Validación actual: **72 unitarios en 7 suites** y **117 de integración en 10
+Última validación del 14/10/2026: **72 unitarios en 7 suites** y **127 de integración en 11
 suites**, más 8 unitarios y 2 de integración del script de administrador. Los conteos históricos de
 abajo corresponden a ampliaciones anteriores.
 
@@ -31,6 +31,18 @@ La corrección posterior del PR añade dos regresiones HTTP de límites de
 autenticación: el total Jest e2e pasa a **99 casos en 9 suites**. El script del
 administrador añade **8 casos unitarios y 2 de integración** con el runner de Node,
 contados por separado de los 59 unitarios de Jest.
+
+## Gráficos de reportes
+
+`test/report-charts.e2e-spec.ts` añade 10 casos HTTP con PostgreSQL real:
+permisos por rol, fechas inclusivas/exclusivas y medianoche de America/La_Paz,
+series diarias/mensuales con períodos vacíos, ranking global por unidades o importe,
+agrupación de vendedores, cobros por fecha de operación sin reembolsos,
+validación de parámetros, importes mayores al entero seguro de JavaScript y
+reservas vigentes en alertas. También comprueba que las consultas no modifican datos.
+
+Solo esta suite: `npm run test:e2e -- --runInBand report-charts.e2e`.
+Los conteos anteriores describen una ejecución comprobada, no cobertura porcentual.
 
 ## Pruebas unitarias
 

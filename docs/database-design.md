@@ -11,7 +11,8 @@ migraciones ni un diseño de productos, inventario o ventas. Los servicios guard
 sus datos en memoria.
 
 Actualmente están implementados catálogo, inventario, movimientos, usuarios,
-sesiones, clientes, ventas y operaciones de cobro, reembolso, devolución y anulación,
+sesiones, recuperación de contraseña, imágenes, pedidos, clientes, ventas y
+operaciones de cobro, reembolso, devolución y anulación,
 con persistencia PostgreSQL y migraciones versionadas. El esquema Prisma y las
 migraciones son la referencia vigente. La propuesta histórica que aparece más
 abajo no describe todos los modelos actuales ni debe usarse como lista de pendientes.
