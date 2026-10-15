@@ -447,3 +447,22 @@ Repetir el seed conserva movimientos posteriores, turnos cerrados por el usuario
 ## Auditoría, notificaciones de pedidos y promociones
 
 Implementados historial ADMIN con valores anteriores/nuevos, avisos propios de clientes con correo persistente/reintentos, y promociones porcentuales controladas en ventas de mostrador. Consulta [contratos, permisos y alcance](docs/admin-features-api.md). El correo local se consulta en Mailpit; producción requiere SMTP real.
+
+## CI y preparación del despliegue
+
+`.github/workflows/ci.yml` ejecuta `Backend checks` en PR a master y en cambios a
+master: auditoría de producción, build/lint, pruebas y bases PostgreSQL/Mailpit
+independientes, además de construir y arrancar la imagen Docker. No despliega.
+
+La dependencia deepmerge-ts usada por Prisma está corregida mediante un override
+acotado; ver [auditoría vigente](docs/dependency-security.md). La configuración
+local puede comprobarse sin modificar datos:
+
+```bash
+npm run deploy:check -- --compose --frontend-env ../template-NuxtJS-frontend/.env
+```
+
+Consultar [actualización coordinada y restauración](docs/deployment.md) para
+reconciliar envíos antiguos, configurar el secreto, verificar un backup y aplicar
+las migraciones antes de actualizar Nuxt. La validación de configuración no
+sustituye la comprobación de backup ni la disponibilidad real de los servicios.

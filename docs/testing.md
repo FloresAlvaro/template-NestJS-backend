@@ -212,3 +212,21 @@ la respuesta y recibir después errores 401/403/408/429 o del transporte, y sepa
 los cobros pendientes por usuario. La auditoría npm de producción sigue mostrando
 tres paquetes con severidad alta en la cadena Prisma/deepmerge-ts y cero críticos;
 no se forzaron cambios incompatibles. No hay CI versionado en estas ramas.
+
+### Dependencias, CI y preparación de despliegue — 15/10/2026
+
+- Override Prisma 7.10.0/deepmerge-ts 8.0.2: carga real de configuración y caso
+  circular correctos en dos pruebas; producción sin vulnerabilidades npm y
+  veinte moderados de desarrollo (cero altos/críticos).
+- 88 unitarias, 8 pruebas del administrador, 4 de preflight y 7 del frontend
+  correctas; build/lint/typecheck correctos. Bootstrap real: dos pruebas correctas.
+- Con la dependencia corregida, quince migraciones, 162 e2e y 22 del seed
+  correctas sobre bases Docker desechables independientes. Se observó un socket
+  hang up en pedidos; la repetición pasó y el fixture de pedidos usa ahora un
+  listener persistente para evitar el listen/close implícito por petición.
+- Backup y pg_restore sobre otro destino temporal: coinciden 3363 registros de
+  auditoría y las quince migraciones; no se usó la base habitual.
+- La imagen de producción construye y aplica migraciones sobre otra base vacía.
+- SSR público con API caída comprobado mediante scripts/check-public-ssr.mjs.
+- CI versionado en ambos repositorios, sin secretos ni despliegues. Los checks
+  remotos se consultan en cada PR; una ejecución local no sustituye su resultado.

@@ -1,40 +1,45 @@
-# Revisión de dependencias — 13 de octubre de 2026
+# Revisión de dependencias — 15 de octubre de 2026
 
-Se actualizaron las resoluciones compatibles de `package-lock.json` con npm,
-sin `--force`. Prisma CLI, cliente y adaptador PostgreSQL quedan alineados en
-7.10.0. NestJS conserva la versión mayor 11.
+Prisma CLI, cliente y adaptador PostgreSQL se mantienen en 7.10.0. NestJS conserva
+la versión mayor 11. La instalación reproducible utiliza npm y package-lock.json;
+el lockfile histórico de pnpm del backend no debe usarse para este despliegue.
 
-Los `overrides` de `package.json` sustituyen dependencias fijadas por sus padres:
+## Corrección de deepmerge-ts
 
-- Swagger: `js-yaml` 5.4.3 o posterior dentro de la versión mayor 5.
-- Prisma: `mysql2` 3.24.6 o posterior dentro de la versión mayor 3.
+La cadena prisma → @prisma/config → deepmerge-ts producía tres avisos altos por
+un mismo problema de agotamiento de pila con referencias circulares
+([GHSA-ggr8-5vv4-36mx](https://github.com/advisories/GHSA-ggr8-5vv4-36mx)).
 
-Revisar si estas excepciones siguen siendo necesarias al actualizar sus padres.
-Las correcciones se reproducen con `npm ci`; el lockfile histórico de pnpm no
-se actualizó porque esta instalación y Docker usan npm.
+Prisma 7.10.0 fija deepmerge-ts 7.1.5. Se aplica un override exclusivo de
+@prisma/config@7.10.0 a deepmerge-ts 8.0.2. No se cambia de versión mayor de Prisma
+ni se instala una candidata de Prisma 8. La revisión de compatibilidad comprobó
+que Prisma usa deepmerge para la carga de configuración de c12. Las diferencias
+de la versión 8 incluyen el tratamiento de Maps y referencias circulares; las
+pruebas de configuración, CLI, migraciones y aplicación verifican el uso del proyecto.
 
-## Hallazgos pendientes
+La regresión scripts/prisma-config.test.cjs resuelve la dependencia desde el
+propio @prisma/config y comprueba el caso circular en un proceso con tiempo
+limitado, además de cargar la configuración real del repositorio. No basta con
+instalar otra copia de deepmerge-ts como dependencia directa.
 
-La auditoría final reporta 0 críticos, 3 altos y 20 moderados. El conteo incluye
-paquetes padres afectados por dependencias transitivas: no son 23 fallos distintos.
-Los avisos raíz restantes son:
+Cuando se actualice Prisma, revisar su dependencia y retirar el override si ya
+no es necesario. Es deliberadamente específico de 7.10.0 para no forzarlo sobre
+una versión futura sin validación. Los overrides existentes de Swagger/js-yaml
+y Prisma/mysql2 se conservan.
 
-- `deepmerge-ts` 7.1.5, fijado por `@prisma/config`: agotamiento de pila con
-  objetos cíclicos. La corrección está en la versión mayor 8; no se fuerza esa
-  sustitución dentro de Prisma. [Aviso](https://github.com/advisories/GHSA-ggr8-5vv4-36mx).
-- `sprintf-js`, usado por `argparse` y el YAML 3 de la cadena de cobertura de
-  Jest: denegación de servicio por precisión sin límite. npm no ofrece una
-  corrección compatible de esta cadena y propone retroceder ts-jest a 27.
-  [Aviso](https://github.com/advisories/GHSA-hp3w-g68c-fv3c).
+## Auditoría actual
 
-No se aplicaron los retrocesos de Prisma a 6 ni de ts-jest a 27 propuestos por
-`npm audit fix --force`. El backend usa PostgreSQL; MySQL2 pertenece a las
-herramientas de Prisma, pero también se corrigió.
+- npm audit --omit=dev: cero vulnerabilidades de producción.
+- npm audit completo: veinte avisos moderados de herramientas de desarrollo,
+  cero altos y cero críticos. El conteo incluye paquetes padres transitivos.
+- Queda el aviso de sprintf-js en la cadena de Jest/argparse/YAML
+  ([GHSA-hp3w-g68c-fv3c](https://github.com/advisories/GHSA-hp3w-g68c-fv3c)).
+  No se aplica el retroceso incompatible sugerido por npm audit fix --force.
 
-## Validación
+## Verificación y CI
 
-- `npm run build`: correcto, con generación del cliente Prisma 7.10.0.
-- `npm run test:unit`: 2 suites y 14 pruebas correctas.
-- ESLint sobre `src/**/*.ts` y `test/**/*.ts`: correcto.
-- No se ejecutaron pruebas e2e con PostgreSQL ni se actualizó la instancia Docker.
-  No se modificaron el esquema, las migraciones ni los contratos HTTP.
+Backend CI instala con npm ci, bloquea avisos altos/críticos de producción y
+comprueba generación/build, ESLint, unitarias, administrador, regresión de
+seguridad, preflight, migraciones, API con PostgreSQL/Mailpit, seed aislado e
+imagen Docker. Cada base de pruebas termina en _test. El workflow no usa secretos
+ni datos de producción y no ejecuta despliegues.
