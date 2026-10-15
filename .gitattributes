@@ -1,5 +1,5 @@
-deploy/homelab/*.sh text eol=lf
-deploy/homelab/*.service text eol=lf
-deploy/homelab/*.timer text eol=lf
-deploy/homelab/Caddyfile text eol=lf
-deploy/homelab/compose.yaml text eol=lf
+deploy/homelab-caddy/*.sh text eol=lf
+deploy/homelab-caddy/*.service text eol=lf
+deploy/homelab-caddy/*.timer text eol=lf
+deploy/homelab-caddy/Caddyfile text eol=lf
+deploy/homelab-caddy/compose.yaml text eol=lf

@@ -7,7 +7,7 @@ Wants=network-online.target
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-WorkingDirectory=/srv/tienda/template-NestJS-backend/deploy/homelab
+WorkingDirectory=/srv/tienda/template-NestJS-backend/deploy/homelab-caddy
 ExecStart=/usr/bin/docker compose --env-file .env -f compose.yaml up -d --wait
 ExecStop=/usr/bin/docker compose --env-file .env -f compose.yaml stop
 TimeoutStartSec=300

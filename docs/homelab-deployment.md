@@ -17,7 +17,7 @@ Solo Caddy publica puertos. PostgreSQL, backend y frontend se comunican por la r
 de Compose. Fotos, sesiones, inventario, ventas, auditoría y cola de correo están
 en PostgreSQL. Los certificados/CA de Caddy usan un volumen persistente separado.
 El Compose local del backend sigue siendo para desarrollo: esta guía usa
-`deploy/homelab/compose.yaml`, con otro proyecto y otros volúmenes.
+`deploy/homelab-caddy/compose.yaml`, con otro proyecto y otros volúmenes.
 
 Los archivos entregados incluyen Compose, Caddyfile, `.env.example`, scripts de
 backup/prueba de restauración y unidades systemd. El frontend incluye Dockerfile
@@ -63,7 +63,7 @@ y fija SHAs o tags de release. No despliegues el `master` antiguo sin estas piez
 ```text
 /srv/tienda/
   template-NestJS-backend/
-    deploy/homelab/
+    deploy/homelab-caddy/
   template-NuxtJS-frontend/
     Dockerfile
 ```
@@ -84,7 +84,7 @@ Consulta [HTTPS automático de Caddy](https://caddyserver.com/docs/automatic-htt
 Después del primer arranque extrae **solo el certificado público**:
 
 ```bash
-cd /srv/tienda/template-NestJS-backend/deploy/homelab
+cd /srv/tienda/template-NestJS-backend/deploy/homelab-caddy
 sudo docker compose cp caddy:/data/caddy/pki/authorities/local/root.crt ./tienda-root.crt
 openssl x509 -in tienda-root.crt -noout -fingerprint -sha256
 ```
@@ -123,7 +123,7 @@ del visitante; detrás de Nuxt varios clientes pueden compartir el límite.
 ## 4. Configuración y secretos
 
 ```bash
-cd /srv/tienda/template-NestJS-backend/deploy/homelab
+cd /srv/tienda/template-NestJS-backend/deploy/homelab-caddy
 umask 077
 cp .env.example .env
 openssl rand -hex 32
@@ -198,7 +198,7 @@ Comprueba que `/usr/bin/docker` sea el binario instalado. Como estos archivos y
 administradores de confianza.
 
 ```bash
-cd /srv/tienda/template-NestJS-backend/deploy/homelab
+cd /srv/tienda/template-NestJS-backend/deploy/homelab-caddy
 sudo install -m 0644 tienda.service /etc/systemd/system/tienda.service
 sudo install -m 0644 tienda-backup.service /etc/systemd/system/tienda-backup.service
 sudo install -m 0644 tienda-backup.timer /etc/systemd/system/tienda-backup.timer
@@ -293,7 +293,7 @@ copias se completan) y recuperar en pocas horas; mide el RTO con un ensayo real.
 Ejecuta al instalar, después de cambiar el esquema y al menos mensualmente:
 
 ```bash
-cd /srv/tienda/template-NestJS-backend/deploy/homelab
+cd /srv/tienda/template-NestJS-backend/deploy/homelab-caddy
 sudo bash restore-test.sh /var/backups/tienda/FECHA_UTC
 ```
 
@@ -328,12 +328,12 @@ Ver [pg_restore de PostgreSQL 17](https://www.postgresql.org/docs/17/app-pgresto
    `restic snapshots` y `restic restore ID --target /srv/recuperacion` con sus
    credenciales; el backup estará bajo `var/backups/tienda/FECHA_UTC` dentro del destino.
 3. Verifica `sha256sum -c SHA256SUMS` desde la carpeta recuperada. Extrae
-   `deployment.tar.gz` en `deploy/homelab` con `umask 077`, revisa `.env`, rutas,
+   `deployment.tar.gz` en `deploy/homelab-caddy` con `umask 077`, revisa `.env`, rutas,
    Caddyfile, IP, SMTP y release. No ejecutes scripts de archivos no confiables.
 4. En ese host/proyecto nuevo, todavía sin backend ni Caddy atendiendo usuarios:
 
 ```bash
-cd /srv/tienda/template-NestJS-backend/deploy/homelab
+cd /srv/tienda/template-NestJS-backend/deploy/homelab-caddy
 sudo docker compose config --quiet
 sudo docker compose build
 sudo docker compose up -d --wait db
