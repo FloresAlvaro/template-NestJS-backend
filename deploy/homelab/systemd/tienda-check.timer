@@ -1,0 +1,7 @@
+[Unit]
+Description=Comprobar Tienda Homelab cada cinco minutos
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=5min
+[Install]
+WantedBy=timers.target

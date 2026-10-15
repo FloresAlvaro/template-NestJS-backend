@@ -466,3 +466,7 @@ Consultar [actualización coordinada y restauración](docs/deployment.md) para
 reconciliar envíos antiguos, configurar el secreto, verificar un backup y aplicar
 las migraciones antes de actualizar Nuxt. La validación de configuración no
 sustituye la comprobación de backup ni la disponibilidad real de los servicios.
+# Despliegue en homelab
+
+Para Ubuntu Server, consulta [Docker, Nginx, HTTPS, backups y comprobaciones](deploy/homelab/README.md).
+Esta pila tiene su propia configuración y volumen; el Compose local se conserva.
