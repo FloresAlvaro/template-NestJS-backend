@@ -1,12 +1,12 @@
-import { AccessGuard } from '../src/auth/access.guard';
+import { AccessGuard } from '../src/auth/guards/access.guard';
 import { allowAdmin } from './allow-admin';
 import { Test } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import { App } from 'supertest/types';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
-import { configureApp } from '../src/configure-app';
-import { PrismaService } from '../src/database/prisma.service';
+import { configureApp } from '../src/config/configure-app';
+import { PrismaService } from '../src/database/services/prisma.service';
 
 type ProductResponse = {
   productId: number;

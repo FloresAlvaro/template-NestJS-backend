@@ -16,7 +16,7 @@ function validateCatalog(input) {
   } = require('../dist/src/products/dto/create-product.dto');
   const {
     InventorySettingsDto,
-  } = require('../dist/src/inventory/inventory.dto');
+  } = require('../dist/src/inventory/dto/inventory.dto');
   const validate = (Dto, value) => {
     const result = plainToInstance(Dto, value);
     const errors = validateSync(result, {
@@ -243,9 +243,13 @@ async function main() {
   }
 }
 
-if (require.main === module)
-  main().catch((error) => {
+module.exports = { seed, validateCatalog };
+if (require.main === module) {
+  const run = process.argv.includes('--demo')
+    ? require('./seed-demo.cjs').main
+    : main;
+  run().catch((error) => {
     console.error('No se pudieron cargar los datos de ejemplo:', error.message);
     process.exitCode = 1;
   });
-module.exports = { seed, validateCatalog };
+}

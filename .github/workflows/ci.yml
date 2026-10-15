@@ -1,0 +1,98 @@
+name: Backend CI
+
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Backend checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: tienda_test
+          POSTGRES_PASSWORD: tienda_test
+          POSTGRES_DB: tienda_ci_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U tienda_test -d tienda_ci_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      mailpit:
+        image: axllent/mailpit:v1.31.5
+        env:
+          MP_MAX_MESSAGES: '1000'
+        ports:
+          - 11025:1025
+          - 18025:8025
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://tienda_test:tienda_test@127.0.0.1:5432/tienda_ci_test
+      TEST_DATABASE_URL: postgresql://tienda_test:tienda_test@127.0.0.1:5432/tienda_ci_test
+      TEST_MAILPIT_URL: http://127.0.0.1:18025
+      TEST_SMTP_PORT: '11025'
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+      - run: npm run build
+      - run: npm run lint:check
+      - run: npm run test:unit
+      - run: npm run test:admin
+      - run: npm run test:security
+      - run: npm run test:deployment
+      - name: Apply migrations and verify administrator bootstrap
+        run: |
+          npm run db:migrate
+          npm run test:admin:e2e
+      - name: API integration with PostgreSQL and captured SMTP
+        run: npm run test:e2e -- --runInBand --testTimeout=20000
+      - name: Seed on a separate disposable database
+        env:
+          DATABASE_URL: postgresql://tienda_test:tienda_test@127.0.0.1:5432/tienda_seed_test
+          TEST_DATABASE_URL: postgresql://tienda_test:tienda_test@127.0.0.1:5432/tienda_seed_test
+        run: |
+          docker exec "${{ job.services.postgres.id }}" createdb -U tienda_test tienda_seed_test
+          npm run db:migrate
+          npm run test:seed
+      - name: Build and boot the production Docker image on a fresh database
+        run: |
+          docker exec "${{ job.services.postgres.id }}" createdb -U tienda_test tienda_runtime_test
+          docker build --tag tienda-ci .
+          docker run --detach --name tienda-ci-api --network host \
+            --env DATABASE_URL=postgresql://tienda_test:tienda_test@127.0.0.1:5432/tienda_runtime_test \
+            --env PORT=3301 --env ORDER_NOTIFICATIONS_ENABLED=false tienda-ci
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:3301/api/health; then
+              docker exec tienda-ci-api node node_modules/prisma/build/index.js migrate status
+              exit 0
+            fi
+            sleep 2
+          done
+          exit 1
+      - name: Container diagnostics on failure
+        if: failure()
+        run: docker logs tienda-ci-api 2>&1 || true
+      - name: Clean up the temporary API
+        if: always()
+        run: docker rm --force tienda-ci-api 2>/dev/null || true

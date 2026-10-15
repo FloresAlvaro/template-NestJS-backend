@@ -13,7 +13,7 @@ español con el usuario y conserva los nombres de código y contratos en inglés
 - Prefiere cambios concretos y pequeños. Centraliza lógica repetida cuando tenga
   las mismas reglas; conserva separadas las reglas propias de cada entidad.
 - No agregues funcionalidades pendientes por iniciativa propia. Las imágenes de
-  productos están expresamente pendientes hasta que el usuario solicite retomarlas.
+  productos ya están implementadas e integradas; conserva sus validaciones y permisos.
 
 ## Stack y estructura
 
@@ -29,6 +29,9 @@ versiones y comandos exactos. Docker usa Node.js 24 y PostgreSQL 17.
 | `src/inventory` | Existencias, mínimos e historial de movimientos |
 | `src/customers` | Clientes con o sin cuenta de usuario |
 | `src/sales` | Ventas, cobros manuales, reembolsos, devoluciones y anulaciones |
+| `src/orders` | Pedidos, reservas, expiración y entrega |
+| `src/suppliers`, `src/purchases` | Proveedores y compras ADMIN, recepción y auditoría de entradas |
+| `src/config` | Configuración HTTP y orígenes confiables |
 | `src/common` | DTO, pipes y utilidades compartidas |
 | `src/database` | PrismaService y transacciones compartidas |
 | `prisma/schema.prisma` y `prisma/migrations` | Modelos y migraciones versionadas |
@@ -36,10 +39,18 @@ versiones y comandos exactos. Docker usa Node.js 24 y PostgreSQL 17.
 | `test` | Pruebas de integración de la API con PostgreSQL |
 | `docs` | Contratos y explicaciones de negocio |
 
-El código, el esquema y las migraciones describen el estado implementado. Algunas
-secciones históricas del README y de `docs/database-design.md` todavía describen
-inventario, autenticación o ventas como pendientes. Contrasta esas afirmaciones
-con la implementación y corrige la documentación afectada por tu tarea.
+Dentro de cada módulo, conserva el archivo `*.module.ts` en su raíz y organiza
+controladores, servicios y DTO en `controllers`, `services` y `dto`. Las reglas
+de pedidos viven en `rules`, las respuestas de ventas/pedidos en `presenters` y
+la persistencia compartida de ventas en `persistence`. Auth separa `guards`,
+`decorators`, `types`, `security` y `templates`. Mantén las pruebas unitarias
+junto al código probado; las validaciones comunes están en `src/common/tests`.
+Cuando muevas archivos, actualiza también los imports de `test` y las rutas
+compiladas que consumen los scripts de administrador y seed.
+
+El código, el esquema y las migraciones describen el estado implementado.
+`docs/database-design.md` conserva una propuesta histórica identificada como tal;
+no la uses como lista de pendientes. Contrasta la documentación con la implementación.
 
 ## Arquitectura y contratos
 
@@ -74,6 +85,9 @@ con la implementación y corrige la documentación afectada por tu tarea.
   revocación de sesiones al cambiar contraseña, rol o estado del usuario.
 - Mantén las protecciones del último administrador y del administrador actual.
   No agregues credenciales predeterminadas ni registres secretos en logs o archivos.
+  Excepción solicitada por el usuario: las cuentas ficticias del seed admiten la
+  contraseña pública de prueba documentada en README únicamente con `--local`.
+  Conserva la validación de destino local y no restablezcas contraseñas existentes.
 - No debilites permisos, CORS, cookies ni límites de autenticación para lograr
   que una prueba pase. No habilites `trust proxy` sin diseñar su frontera de confianza.
 
@@ -103,6 +117,10 @@ con la implementación y corrige la documentación afectada por tu tarea.
   reembolso automático al devolver productos o anular una venta.
 - Conserva ventas y operaciones como historial: no agregues edición ni borrado
   destructivo de esos registros para corregir saldos.
+- Proveedores y compras son exclusivos de ADMIN. Las compras PENDING no cambian
+  stock; solo la recepción completa lo incrementa y genera movimientos ligados
+  a sus líneas. Recepción, costos opcionales y auditoría usan una sola transacción
+  idempotente. Solo se cancelan pendientes; nunca se elimina una compra recibida.
 
 ## Base de datos, seed y Docker
 
@@ -156,3 +174,17 @@ npm run test:e2e -- --runInBand
 - Entrega un resumen breve con qué cambió, cómo se verificó y qué quedó pendiente.
   Distingue comprobaciones realizadas de las que no pudiste ejecutar. Actualiza
   Swagger y la documentación de las APIs cuando cambien sus contratos.
+
+## Caja y alertas operativas
+
+- CashModule mantiene turnos por responsable e índices parciales para un turno abierto por caja/usuario. ADMIN supervisa todos, pero cada responsable opera y cierra el suyo. No borrar ni reabrir historial.
+- Cobros y reembolsos usan el turno propio abierto o cashShiftId explícito; la API conserva compatibilidad con registros sin turno. Nuevos flujos Nuxt envían identificador explícito. El ledger y la operación se guardan bajo catalogWrite en un solo commit. Tarjeta/transferencia no afectan el efectivo.
+- El cierre valida lastMovementId y registra contado, esperado y diferencia exactos. Los reintentos conservan UUID/actor/hash incluso después del cierre.
+- /inventory/alerts descuenta reservas PENDING vigentes y excluye padres inactivos; no sustituirlo por el reporte histórico de stock físico. Ver docs/cash-and-stock-alerts-api.md.
+
+## Auditoría, avisos y promociones
+
+- CatalogWrite transmite el actor de sesión en contexto local a la transacción. Los triggers de auditoría capturan solo campos permitidos; no introducir hashes, tokens o binarios ni APIs para borrar/editar AuditLog. Los scripts sin sesión quedan como Proceso del sistema.
+- Las transiciones notificables de Order encolan una sola vez por pedido/estado mediante trigger transaccional. El worker SMTP usa lease, reintentos limitados y Message-ID estable; la entrega externa es al menos una vez. No enviar correo dentro de la transacción de pedido.
+- Promociones porcentuales se aplican solo a ventas de mostrador, una por venta, con permiso, vigencia, mínimo y versión esperados. Redondear descuento por unidad HALF_UP antes de multiplicar. Devoluciones usan unitPrice final histórico; no recalcular descuentos con promociones actuales.
+- Mantener compatibilidad de hashes y ventas anteriores sin promoción. Ver docs/admin-features-api.md.

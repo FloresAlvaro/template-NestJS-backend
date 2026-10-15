@@ -4,11 +4,11 @@ import type { App } from 'supertest/types';
 import request from 'supertest';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { AppModule } from '../src/app.module';
-import { configureApp } from '../src/configure-app';
-import { PrismaService } from '../src/database/prisma.service';
-import { tokenHash } from '../src/auth/password';
+import { configureApp } from '../src/config/configure-app';
+import { PrismaService } from '../src/database/services/prisma.service';
+import { tokenHash } from '../src/auth/security/password';
 import { Role } from '../generated/prisma/client';
-import { OrdersService } from '../src/orders/orders.service';
+import { OrdersService } from '../src/orders/services/orders.service';
 
 const url = process.env.TEST_DATABASE_URL;
 if (!url || !new URL(url).pathname.endsWith('_test'))
@@ -42,7 +42,9 @@ describe('Customer pickup orders and reservations (PostgreSQL)', () => {
     }).compile();
     app = module.createNestApplication<INestApplication<App>>();
     configureApp(app);
-    await app.init();
+    // Keep one listener for the application's lifetime. Supertest's implicit
+    // listen/close per request can race with concurrent requests and pooled sockets.
+    await app.listen(0, '127.0.0.1');
     db = app.get(PrismaService);
   };
   const get = (path: string, actor: Actor = 'CUSTOMER') =>

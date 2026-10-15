@@ -23,11 +23,16 @@
     "db:migrate": "prisma migrate deploy",
     "db:migrate:dev": "prisma migrate dev",
     "db:seed": "node scripts/seed.cjs",
-    "test:seed": "node --test scripts/seed.test.cjs",
+    "test:seed": "node --test --test-concurrency=1 scripts/seed.test.cjs scripts/seed-demo.test.cjs scripts/seed-demo-utils.test.cjs",
     "test:unit": "jest --runInBand",
+    "lint:check": "eslint \"src/**/*.ts\" \"test/**/*.ts\"",
+    "test:security": "node --test scripts/prisma-config.test.cjs",
+    "test:deployment": "node --test scripts/check-deployment.test.cjs",
+    "deploy:check": "node scripts/check-deployment.cjs",
     "admin:create": "node scripts/create-admin.cjs",
     "test:admin": "node --test scripts/create-admin.test.cjs",
-    "test:admin:e2e": "node --test scripts/create-admin.integration.test.cjs"
+    "test:admin:e2e": "node --test scripts/create-admin.integration.test.cjs",
+    "db:seed:demo": "node scripts/seed-demo.cjs"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
@@ -97,6 +102,9 @@
     }
   },
   "overrides": {
+    "@prisma/config@7.10.0": {
+      "deepmerge-ts": "8.0.2"
+    },
     "@nestjs/swagger": {
       "js-yaml": "^5.4.3"
     },

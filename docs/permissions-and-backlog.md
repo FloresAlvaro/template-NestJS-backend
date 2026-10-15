@@ -1,4 +1,4 @@
-# Permisos y pendientes — 13 de octubre de 2026
+# Permisos y pendientes — 15 de octubre de 2026
 
 Ver [flujo de permisos](flowcharts.md#1-permisos-de-una-petición),
 [UML de usuarios y sesiones](diagrams/uml-classes.md#usuarios-sesiones)
@@ -6,17 +6,15 @@ y el [índice de diagramas](diagrams/README.md).
 
 ## Resultado
 
-Actualización posterior a la revisión inicial: se añadieron cuatro rutas de
-reportes exclusivas de ADMIN, tres rutas de imágenes de gestión (GET para
-ADMIN/SELLER y POST/DELETE para ADMIN), y una lectura pública de imágenes que
-valida la activación de todos los padres. La recuperación local agrega dos POST
-públicos con Origin y límite de intentos, y un GET de formulario independiente.
-Los pedidos de autoservicio añaden siete rutas con permisos explícitos y aislamiento por propietario. Ahora hay 67 rutas. Ver [pedidos](orders-api.md),
-[reportes](reports-api.md) e [imágenes](product-images-api.md).
+El backend declara actualmente **98 rutas en 21 controladores**. Reportes incluye
+siete lecturas exclusivas de ADMIN. Imágenes de gestión permite GET a ADMIN/SELLER
+y POST/DELETE a ADMIN; la lectura pública valida la activación de todos los padres.
+Recuperación de contraseña y pedidos están integrados con Nuxt. Ver
+[pedidos](orders-api.md), [reportes](reports-api.md),
+[recuperación](password-recovery-api.md) e [imágenes](product-images-api.md).
 
-Se revisaron las 49 rutas declaradas por los 10 controladores, el registro global
-de `AccessGuard`, los decoradores y el acceso al perfil propio. No se detectaron
-rutas de negocio sin la autorización exigida por las reglas actuales.
+La revisión inicial de 49 rutas se conserva abajo como evidencia histórica;
+no equivale a una comprobación HTTP exhaustiva de las rutas actuales.
 
 El guard global permite GET/HEAD/OPTIONS a ADMIN y SELLER, y el resto de métodos
 solo a ADMIN, salvo decoradores explícitos. La metadata del método prevalece
@@ -34,15 +32,27 @@ Todas las rutas de esta tabla llevan el prefijo `/api`.
 | `/sub-categories`, `/sub-categories/:id` | ADMIN/SELLER | ADMIN: POST raíz, PATCH por ID, PATCH `:id/activate`, DELETE por ID |
 | `/products`, `/products/:id` | ADMIN/SELLER; costo visible solo a ADMIN | ADMIN: POST raíz, PATCH por ID, PATCH `:id/activate`, DELETE por ID |
 | `/products/:id/inventory` y `/movements` relativo | ADMIN/SELLER | ADMIN: PATCH inventario y POST movimientos |
+| `/cash/registers` | ADMIN/SELLER | ADMIN: crear/modificar cajas |
+| `/cash/shifts` y detalle/movimientos | ADMIN: todos; SELLER: propios | ADMIN/SELLER: abrir turno propio, movimientos y cierre propios |
+| `/inventory/alerts` | ADMIN/SELLER, sin costos | No existen |
 | `/customers`, `/customers/:id` | ADMIN/SELLER | POST: ADMIN/SELLER; PATCH por ID: ADMIN |
 | `/sales`, `/sales/:id` | ADMIN/SELLER | POST raíz y `:id/payments`: ADMIN/SELLER; `:id/refunds`, `:id/returns`, `:id/cancel`: ADMIN |
 | `/orders`, `/orders/:id` | ADMIN/SELLER: todos; CUSTOMER: propios | POST raíz: CUSTOMER; `:id/confirm`, `:id/ready`, `:id/complete`: ADMIN/SELLER; `:id/cancel`: ADMIN/SELLER y CUSTOMER propietario, solo PENDING |
+| `/audit` | ADMIN: historial de cambios | No existen |
+| `/promotions`, `/promotions/:id` | ADMIN: todas; SELLER: vigentes y autorizadas | ADMIN: POST raíz, PATCH por ID |
+| `/notifications` | ADMIN: todos; CUSTOMER: propios | PATCH `:id/read`: propio; POST `:id/retry`: ADMIN |
 | `/users` | ADMIN | ADMIN: POST raíz, PATCH `:id`, POST `:id/password` |
+| `/suppliers`, `/suppliers/:id` | ADMIN | ADMIN: POST raíz, PATCH por ID (incluye baja lógica) |
+| `/purchases`, `/purchases/:id` | ADMIN | ADMIN: POST raíz, `:id/receive`, `:id/cancel` |
 | `/auth/me` | ADMIN/SELLER/CUSTOMER | — |
 | `/auth/profile`, `/auth/password`, `/auth/logout` | — | ADMIN/SELLER/CUSTOMER, sobre su propia sesión/cuenta |
 | `/auth/customer` | CUSTOMER, perfil propio | PATCH: CUSTOMER, perfil propio |
 | `/auth/login`, `/auth/register` | — | Públicas, con Origin autorizado y límite de intentos; registro fija CUSTOMER |
 | `/shop/products`, `/shop/products/:id` | Públicas, solo catálogo activo y sin costos | No existen |
+| `/products/:id/image` | ADMIN/SELLER | POST/DELETE: ADMIN |
+| `/shop/products/:id/image` | Pública, solo catálogo activo | No existen |
+| `/reports/sales`, `/reports/top-products`, `/reports/sales-series`, `/reports/sellers`, `/reports/payment-methods`, `/reports/inventory`, `/reports/low-stock` | ADMIN | No existen |
+| `/auth/forgot-password`, `/auth/reset-password` | GET reset-password: formulario público | POST: públicas, con Origin y límite de intentos |
 | `/health` | Pública | No existen |
 
 SELLER puede consultar todas las ventas, clientes e historial de inventario,
@@ -72,20 +82,28 @@ implementación ni presupone que todos formen parte del alcance del producto.
 
 | Prioridad sugerida | Trabajo | Estado / alcance |
 | --- | --- | --- |
-| Alta, antes de publicar | Resolver dependencias vulnerables restantes | Ver `dependency-security.md`; evitar retrocesos incompatibles de Prisma/Jest |
-| Alta, antes de publicar | Límite centralizado de login/registro | El actual es local a cada proceso; diseñar proxy de confianza sin habilitar `trust proxy` indiscriminadamente |
+| Corregido en producción | Dependencias vulnerables de producción | Override acotado de deepmerge-ts; auditoría de producción sin avisos. Persisten moderados de desarrollo, ver `dependency-security.md` |
+| Implementado; configurar antes de publicar | Límite centralizado de login/registro | PostgreSQL atómico e identidad firmada por Nuxt; configurar secreto privado compartido. Ver [contrato](auth-throttle.md) |
 | Alta, antes de publicar | Política de exposición de Swagger y stock público | Resolver las observaciones anteriores y documentar los contratos elegidos |
+| Alta, antes de publicar | Operación de producción | Configurar HTTPS, correo real, monitoreo, copias de seguridad y verificar restauración |
+| Parcialmente implementado | Automatización frontend y CI | Workflows backend/frontend, regresiones y comprobación SSR; suite completa de navegador pendiente |
 | Alta | Completar pruebas HTTP de permisos por ruta y rol | Incluir usuario anónimo, sesión vencida/revocada, Origin y aislamiento del perfil |
-| Implementado localmente | Recuperación de contraseña por correo | SMTP y Mailpit con formulario independiente; proveedor de producción e integración Nuxt pendientes |
-| Implementado parcialmente | Compras de autoservicio | Pedidos CUSTOMER, reservas, retiro y cobros manuales disponibles; carrito persistente, envíos, pasarela y notificaciones pendientes |
-| Media | Caja: apertura, cierre y conciliación | Propuesta; los cobros actuales son registros manuales |
-| Implementado | Reportes de ventas y existencias | Resumen, ranking neto y alertas de stock; exportaciones y pantallas siguen pendientes |
-| Media | Proveedores, compras y recepción | Propuesta; actualmente hay entradas manuales de inventario |
-| Según necesidad comercial | Descuentos e impuestos | No incluidos actualmente; requieren reglas monetarias e historial |
+| Implementado localmente | Recuperación de contraseña por correo | SMTP/Mailpit y pantallas Nuxt implementados; proveedor de producción y estrategia de entrega/reintentos pendientes |
+| Implementado parcialmente | Compras de autoservicio | Pedidos CUSTOMER, reservas, retiro y cobros manuales disponibles; carrito persistente, envíos y pasarela pendientes; avisos de estados implementados |
+| Alta | Búsqueda y filtros del catálogo público | Actualmente solo paginación; búsqueda, categoría, precio y disponibilidad pendientes |
+| Implementado | Caja: apertura, cierre y arqueo | Turnos por responsable, movimientos, métodos separados y cierres auditados; ver [contrato](cash-and-stock-alerts-api.md). Cierre por supervisor y conciliación bancaria pendientes |
+| Implementado | Alertas operativas de stock | Disponibilidad descontando reservas, aviso en Inicio y vista filtrable; correo/push pendientes |
+| Implementado | Reportes de ventas y existencias | Siete endpoints y seis gráficos Nuxt con tablas exactas y filtros; exportaciones, metas y rentabilidad pendientes |
+| Media | Comprobantes y exportaciones | Impresión de comprobantes comerciales y descarga CSV/PDF pendientes; no equivalen a facturación fiscal |
+| Implementado | Proveedores, compras y recepción | ADMIN: compras pendientes, recepción completa idempotente con entradas auditadas y costos opcionales; ver [contrato](purchases-api.md). Parciales, devoluciones y cuentas por pagar pendientes |
+| Implementado | Descuentos y promociones | Porcentaje, vigencia, mínimo, permisos e historial en ventas de mostrador; autoservicio y acumulación no incluidos |
+| Implementado | Auditoría administrativa | ADMIN consulta snapshots de catálogo, precios, costos, roles y promociones; sin secretos |
+| Implementado | Notificaciones de pedidos | Avisos CUSTOMER y cola SMTP con reintentos/supervisión ADMIN; proveedor de producción pendiente |
+| Según necesidad comercial | Impuestos | Pendientes de reglas comerciales y fiscales |
 | Según necesidad comercial | Facturación fiscal y notas de crédito | No implementadas; definir requisitos e integración antes de diseñar |
 | Según necesidad comercial | Pasarela de pagos | No implementada; requiere conciliación, webhooks e idempotencia externa |
 | Según necesidad comercial | Sucursales, moneda múltiple o productos por peso | Fuera del modelo actual; requieren rediseño explícito |
-| Implementado por solicitud | Imágenes de productos | Una foto validada por producto, persistida en PostgreSQL; integración frontend pendiente |
+| Implementado por solicitud | Imágenes de productos | Una foto validada por producto en PostgreSQL; catálogo y carga/reemplazo/eliminación en Nuxt implementados |
 
 Inventario, sesiones, roles, clientes, ventas, cobros manuales, reembolsos,
 devoluciones y anulaciones ya están implementados: no son pendientes.

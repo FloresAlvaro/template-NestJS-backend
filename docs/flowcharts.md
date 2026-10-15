@@ -187,7 +187,7 @@ una imagen no cambia stock ni precios. Ver [contrato de imágenes](product-image
 flowchart TD
     A[ADMIN solicita un reporte] --> B[Validar sesión, rol y parámetros]
     B --> C{¿Reporte solicitado?}
-    C -->|Ventas o ranking| D[Validar período con zona horaria, hasta 366 días]
+    C -->|Ventas, series, vendedores o ranking| D[Validar período con zona horaria, hasta 366 días]
     D --> E[Seleccionar ventas desde from incluido hasta to excluido]
     E --> F[Consultar todas sus operaciones registradas hasta ahora]
     F --> G[Calcular saldos o unidades netas sin compensar deudas entre ventas]
@@ -195,11 +195,17 @@ flowchart TD
     H --> I[Clasificar existencias o paginar productos bajo el mínimo]
     G --> J[Devolver reporte con importes decimales como texto]
     I --> J
+    C -->|Métodos de cobro| K[Validar período y seleccionar PAYMENT por fecha de operación]
+    K --> L[Agrupar cobros brutos por CASH, CARD y TRANSFER sin descontar reembolsos]
+    L --> J
 ```
 
 El reporte de ventas refleja el estado actual de las ventas creadas en el
 período. No reconstruye el saldo histórico al cierre ni mide los movimientos de
-caja ocurridos exclusivamente durante ese período. Ver [reportes](reports-api.md).
+caja ocurridos exclusivamente durante ese período. El reporte de métodos de cobro
+sí selecciona PAYMENT por su fecha, pero es bruto y excluye reembolsos; tampoco es
+un cierre de caja. Las alertas añaden reservas vigentes y disponibilidad real al
+stock físico. Ver [reportes](reports-api.md).
 
 ## 8. Cómo funcionan las pruebas
 

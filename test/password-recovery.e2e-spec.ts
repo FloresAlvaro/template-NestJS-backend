@@ -5,11 +5,15 @@ import type { App } from 'supertest/types';
 import request from 'supertest';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { AppModule } from '../src/app.module';
-import { configureApp } from '../src/configure-app';
-import { PrismaService } from '../src/database/prisma.service';
-import { AuthService } from '../src/auth/auth.service';
-import { PasswordRecoveryService } from '../src/auth/password-recovery.service';
-import { hashPassword, tokenHash, verifyPassword } from '../src/auth/password';
+import { configureApp } from '../src/config/configure-app';
+import { PrismaService } from '../src/database/services/prisma.service';
+import { AuthService } from '../src/auth/services/auth.service';
+import { PasswordRecoveryService } from '../src/auth/services/password-recovery.service';
+import {
+  hashPassword,
+  tokenHash,
+  verifyPassword,
+} from '../src/auth/security/password';
 
 const url = process.env.TEST_DATABASE_URL;
 if (!url || !new URL(url).pathname.endsWith('_test'))

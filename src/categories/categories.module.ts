@@ -1,6 +1,6 @@
 import { Module, forwardRef } from '@nestjs/common';
-import { CategoriesService } from './categories.service';
-import { CategoriesController } from './categories.controller';
+import { CategoriesService } from './services/categories.service';
+import { CategoriesController } from './controllers/categories.controller';
 import { SubCategoriesModule } from '../sub-categories/sub-categories.module';
 
 @Module({

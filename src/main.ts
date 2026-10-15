@@ -1,7 +1,7 @@
-import { trustedOrigins } from './config-origins';
+import { trustedOrigins } from './config/config-origins';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { configureApp } from './configure-app';
+import { configureApp } from './config/configure-app';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 async function bootstrap() {

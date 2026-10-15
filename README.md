@@ -1,7 +1,29 @@
 # Backend de gestión de productos
 
-API NestJS con PostgreSQL y Prisma. Actualmente implementa categorías,
-subcategorías, productos, inventario, clientes, ventas, cobros y autenticación.
+API NestJS con PostgreSQL y Prisma. Implementa catálogo con fotos, inventario,
+clientes, ventas, cobros manuales, reembolsos, devoluciones, anulaciones,
+pedidos de retiro, proveedores, compras, sesiones, roles, recuperación de contraseña y reportes.
+
+## Estado del proyecto — 14/10/2026
+
+El frontend Nuxt integra estos flujos. Los reportes disponen de siete endpoints
+para seis gráficos: evolución diaria/mensual, productos por unidades o importe,
+vendedores, métodos de cobro, estado del stock y existencias frente al mínimo.
+Las consultas son ADMIN y no constituyen cierre de caja ni cálculo de ganancias.
+
+- [Reportes y contratos](docs/reports-api.md).
+- [Imágenes de productos](docs/product-images-api.md).
+- [Pedidos y reservas](docs/orders-api.md).
+- [Proveedores, compras y recepción de mercadería](docs/purchases-api.md).
+- [Recuperación de contraseña](docs/password-recovery-api.md).
+- [Permisos y pendientes reales](docs/permissions-and-backlog.md).
+- [Pruebas y última validación](docs/testing.md).
+- [Frontend: instalación y uso](../template-NuxtJS-frontend/README.md) (checkout hermano).
+
+Pendientes principales: búsqueda/filtros públicos, caja, comprobantes/exportaciones,
+recepciones parciales, devoluciones a proveedores, carrito persistente y notificaciones. Pagos en línea, envíos,
+descuentos, impuestos y facturación fiscal requieren definir el alcance comercial.
+Antes de producción falta configurar y verificar la operación indicada en el backlog.
 
 Para entender su funcionamiento, consulta el [índice de diagramas de flujo y UML](docs/diagrams/README.md)
 de permisos, catálogo, usuarios, pedidos, ventas, recuperación de contraseña y pruebas.
@@ -202,6 +224,104 @@ docker compose up -d --build backend
 docker compose exec -e SEED_ADMIN_EMAIL=correo-de-tu-administrador@ejemplo.com backend node scripts/seed.cjs
 ```
 
+### Demo completa para revisar la interfaz
+
+El seed original (`db:seed`) sigue cargando solamente el catálogo. El modo
+`db:seed:demo` (también `npm run db:seed -- --demo`) incluye ese catálogo y añade escenarios ficticios de todos los
+flujos implementados. Usa un administrador activo existente para auditar la carga
+y añade una cuenta ADMIN de demostración. Conserva las cuentas ya existentes.
+
+Después de actualizar la imagen, ejecuta desde esta carpeta:
+
+```bash
+docker compose up -d --build backend
+docker compose exec -e SEED_ADMIN_EMAIL=correo-real-de-tu-admin@ejemplo.com backend node scripts/seed-demo.cjs
+```
+
+Para las pruebas locales con contraseña fija solicitadas, utiliza:
+
+```bash
+docker compose exec backend node scripts/seed-demo.cjs --local
+```
+
+Las seis cuentas demo nuevas usan **`TiendaDemo2026!`**. Es una credencial pública
+de prueba, habilitada explícitamente por `--local` para PostgreSQL en loopback o
+el Compose local. El administrador original conserva su contraseña. Cuando hay
+un único ADMIN activo ajeno a estas cuentas, se selecciona para auditar la carga;
+si hay varios, indica `SEED_ADMIN_EMAIL` como en el comando anterior.
+Fuera de Docker: `npm run db:seed:demo -- --local` con `DATABASE_URL` local.
+Puedes cambiar la contraseña desde Mi cuenta o Usuarios; repetir la demo no la
+restablece. `SEED_DEMO_PASSWORD` permite sustituir la contraseña al crear cuentas.
+
+La terminal pide una contraseña de 12 a 128 caracteres y su confirmación, sin
+mostrarla cuando no se usa `--local`. Esa contraseña se usa para las seis cuentas demo; no se guarda en
+archivos ni se imprime. Para automatización puede suministrarse mediante
+`SEED_DEMO_PASSWORD`; evita escribir secretos directamente en el historial del
+shell. Con una instalación local ya compilada: configura `DATABASE_URL`,
+`SEED_ADMIN_EMAIL` y ejecuta `npm run db:seed:demo`.
+
+| Cuenta | Rol / uso |
+| --- | --- |
+| Tu administrador existente | Catálogo, inventario, usuarios, reportes y operaciones administrativas |
+| `admin@demo.example.com` | ADMIN activo: proveedores, compras, inventario, reportes y usuarios |
+| `vendedor@demo.example.com` | SELLER activo: ventas, cobros y gestión de pedidos |
+| `laura@demo.example.com` | SELLER activo: segundo vendedor para probar permisos y operaciones |
+| `ana@demo.example.com` | CUSTOMER activo: reservas y pedidos propios |
+| `bruno@demo.example.com` | CUSTOMER activo: otros pedidos para comprobar aislamiento |
+| `inactivo@demo.example.com` | SELLER inactivo: rechazo de inicio de sesión |
+
+Los correos y documentos son ficticios. Para probar recuperación de contraseña
+con estas cuentas, los mensajes aparecerán en Mailpit; no son direcciones reales
+para recibir correo en producción.
+
+La carga inicial genera:
+
+- 49 productos: los 36 del catálogo original, 10 de flujos comerciales y 3 de abastecimiento.
+- 5 clientes: dos con cuenta, dos sin cuenta y uno inactivo.
+- 4 ilustraciones WebP de ejemplo en los productos demo. Otros quedan sin foto
+  para comprobar el estado alternativo; no se descargan imágenes externas.
+- Stock normal, bajo, agotado, reservado totalmente, y productos ocultos por
+  inactividad del producto, subcategoría o categoría.
+- Entradas, salidas y ajustes con usuario, motivo y stock anterior/resultante.
+- 15 ventas: sin cobrar, parcialmente cobradas, pagadas, pagos fraccionados en
+  efectivo/tarjeta/transferencia, devoluciones parciales y completas, reembolsos
+  pendientes y realizados, anulaciones con y sin dinero recibido.
+- 9 pedidos: pendiente, pendiente con todas las unidades reservadas, confirmado,
+  preparado sin pagar, preparado pagado, entregado, cancelado por el cliente,
+  vencido y cancelado mediante anulación de su venta.
+- Ventas en distintos días de las últimas dos semanas para revisar reportes.
+- 3 proveedores ficticios: dos activos y uno inactivo.
+- 5 compras: dos pendientes, dos recibidas y una cancelada. Las recibidas
+  muestran entradas auditadas y actualización de costo opcional.
+- Los SKU `DEMO-BUY-001`, `DEMO-BUY-002` y `DEMO-BUY-003` empiezan en cero y
+  reciben 20, 50 y 15 unidades por las compras demo. Sus costos quedan en 2.00,
+  0.50 y 3.10; solo la segunda recepción actualiza el costo. Se preservan los
+  precios de venta. Las compras no representan pagos al proveedor.
+
+Las cantidades describen una base inicial vacía. Si ya existen registros, se
+conservan y la demo se añade. Las ventas, cobros, devoluciones, fotos y transiciones
+usan los servicios y validadores del backend; todos los datos se confirman en
+una misma transacción bajo el bloqueo de catálogo. Un fallo revierte la carga
+entera, incluido el catálogo inicial. Los pagos son ejemplos de registros
+manuales; no ejecutan transacciones bancarias.
+
+Repetir la demo **no restablece estados, contraseñas, fotos ni stock** y no crea
+más operaciones. Los pedidos pendientes vencen normalmente; para crear pedidos
+nuevos usa la interfaz. Un marcador de venta identifica la carga completada;
+no borres sus registros directamente. Otro marcador identifica la ampliación
+de proveedores/compras: una demo de la versión anterior se amplía una sola vez,
+sin alterar sus productos, cuentas, ventas ni pedidos. Las compras de ejemplo
+usan un catálogo nuevo y separado. Si existen correos, SKU, documentos o
+categorías reservados de demo sin una carga completa, se informa un conflicto
+y no se reemplaza trabajo existente.
+
+Recorrido sugerido: entra como administrador, revisa Productos/Fotos/Inventario,
+Clientes, Ventas y Reportes; entra como vendedor para cobrar y preparar pedidos;
+revisa también Proveedores y Compras para recibir una compra pendiente o cancelarla;
+entra como Ana o Bruno para agregar productos, crear pedidos y consultar solamente
+los propios. Comprueba el pedido preparado sin pagar (entrega bloqueada) y el
+preparado pagado (entrega disponible).
+
 Para comprobar el seed: compila, aplica las migraciones a una base temporal y
 configura `TEST_DATABASE_URL` con su URL, cuyo nombre debe terminar en `_test`.
 Ejecuta `npm run test:seed`. Las pruebas borran el catálogo de esa base de prueba;
@@ -236,7 +356,7 @@ Las escrituras requieren Origin incluido en TRUSTED_ORIGINS. Clientes HTTP como
 Postman también deben enviar este encabezado. Las consultas de perfil usan el
 usuario autenticado y no aceptan un userId externo.
 
-`TRUSTED_ORIGINS` contiene orígenes separados por comas, sin barra final. En despliegue configura el origen HTTPS real y `COOKIE_SECURE=true`. Compose usa `COOKIE_SECURE=false` exclusivamente para localhost HTTP. Nuxt usa un proxy del mismo origen hacia este backend. Login y registro admiten 10 intentos/minuto por dirección de conexión; el límite es local a cada proceso y, detrás del proxy Nuxt, se comparte por su conexión. Para múltiples instancias o publicación utiliza un límite centralizado en el proxy de confianza. No habilitar trust proxy sin restringir el acceso directo.
+`TRUSTED_ORIGINS` contiene orígenes separados por comas, sin barra final. En despliegue configura el origen HTTPS real y `COOKIE_SECURE=true`. Compose usa `COOKIE_SECURE=false` exclusivamente para localhost HTTP. Nuxt usa un proxy del mismo origen hacia este backend. Login y registro comparten 10 intentos/minuto por dirección de cliente; recuperación tiene su propio contador. Los contadores son atómicos en PostgreSQL y se comparten entre instancias. Configura el mismo secreto privado de al menos 32 caracteres en `AUTH_PROXY_SECRET` (backend) y `NUXT_AUTH_PROXY_SECRET` (Nuxt) para que el proxy firme la IP de su conexión entrante. Sin secreto se usa la IP de conexión directa, por lo que los clientes de un proxy comparten límite. No se confía en `X-Forwarded-For` ni se habilita `trust proxy`. Ver [límite de autenticación](docs/auth-throttle.md).
 
 ### Pruebas
 
@@ -247,7 +367,7 @@ Con TEST_DATABASE_URL apuntando a una base independiente terminada en `_test`, e
 La revisión del 13/10/2026 actualizó las dependencias compatibles y eliminó los
 hallazgos críticos. Consulta las versiones, excepciones y avisos restantes en
 [seguridad de dependencias](docs/dependency-security.md).
-La matriz de acceso de las 49 rutas, sus comprobaciones y las funcionalidades
+La matriz de acceso actual, las comprobaciones históricas y las funcionalidades
 pendientes están en [permisos y pendientes](docs/permissions-and-backlog.md).
 
 ## Diagramas y UML
@@ -263,8 +383,86 @@ visor Markdown compatible. El índice enlaza directamente a cada diagrama.
 
 ## Código compartido
 
+### Organización por módulos
+
+Cada área conserva su módulo NestJS (`src/products/products.module.ts`, por
+ejemplo). Dentro de cada módulo se separan `controllers`, `services`, `dto` y,
+cuando corresponda, `entities` y `utils`. Los controladores manejan HTTP y
+permisos; los servicios conservan las reglas y transacciones de negocio.
+
+- `src/auth`: además separa guard, decoradores, tipos, seguridad y plantilla de recuperación.
+- `src/orders/rules`: transiciones de pedidos; `presenters`: respuesta pública o de gestión.
+- `src/sales/presenters`: serialización y saldos; `persistence`: creación transaccional compartida.
+- `src/config`: validación global de HTTP y configuración de orígenes.
+- `src/database/services`: cliente Prisma y bloqueo compartido de escrituras.
+- `src/common`: validaciones y utilidades reutilizables entre módulos.
+
+Las pruebas unitarias acompañan al código probado, con las validaciones comunes
+en `src/common/tests`. `test` mantiene las pruebas HTTP de integración. Los
+scripts de seed y administrador apuntan a las nuevas rutas compiladas; ejecuta
+`npm run build` antes de usarlos.
+
+`src/common/utils/search-filter.ts` escapa los comodines de búsquedas literales
+de productos, clientes y ventas. `request-hash.ts` comparte el hash de solicitudes
+de ventas, operaciones y pedidos, conservando el orden y la representación JSON
+anteriores para que sigan siendo válidos los reintentos ya registrados.
+
 La validación de paginación se encuentra en `src/common/dto/pagination.dto.ts`; productos, usuarios y catálogo público usan los mismos límites. Los filtros de estado y la validación de IDs se encuentran en `src/common`. Las consultas públicas del catálogo están separadas en ShopModule/ShopService.
 
 AuthService centraliza la creación de cuentas y el reemplazo de contraseñas con revocación de sesiones. El registro público fija CUSTOMER; el controlador de usuarios mantiene la autorización de administrador. `session-cookie.ts` contiene el nombre y la lectura validada de la cookie; `config-origins.ts` comparte la configuración entre CORS y la protección de escrituras.
 
 Las reglas de desactivación, cambios de padre y unicidad de categorías, subcategorías y productos permanecen en sus servicios porque tienen restricciones distintas. No se añadió un CRUD genérico que esconda estas reglas ni se modificó el esquema de la base de datos.
+
+## Caja, turnos y alertas
+
+Implementados apertura, movimientos manuales, cobros/reembolsos ligados a turno, resumen por método y cierre con arqueo. ADMIN administra cajas y supervisa todos los turnos; cada responsable opera el suyo. Nuxt exige turno para registrar nuevos cobros/reembolsos. Las alertas operativas descuentan reservas vigentes. Consulta [contratos y compatibilidad](docs/cash-and-stock-alerts-api.md).
+
+### Ejemplos de caja en el seed demo
+
+La demo añade tres cajas propias y cinco turnos con diez movimientos manuales de efectivo:
+
+| Cuenta | Turno | Apertura | Ingresos | Retiros | Esperado | Contado | Diferencia |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| vendedor@demo.example.com | Cerrado exacto | 100.00 | 50.00 | 20.00 | 130.00 | 130.00 | 0.00 |
+| laura@demo.example.com | Cerrado con faltante | 150.00 | 30.00 | 20.00 | 160.00 | 155.00 | -5.00 |
+| admin@demo.example.com | Cerrado con sobrante | 80.00 | 20.00 | 10.00 | 90.00 | 92.00 | 2.00 |
+| vendedor@demo.example.com | Abierto | 100.00 | 50.00 | 20.00 | 130.00 | — | — |
+| laura@demo.example.com | Abierto | 150.00 | 30.00 | 10.00 | 170.00 | — | — |
+
+Caja principal queda libre para abrir un turno con tu administrador. ADMIN ve todos los turnos; cada vendedor opera y cierra el suyo. Los cobros y reembolsos anteriores siguen sin asignarse a estos turnos: no se reescribe su historial ni se inventan pagos. Los nuevos cobros registrados desde ventas se vinculan al turno abierto del usuario.
+
+Antes de ejecutar, compila y aplica las migraciones. En Docker, desde la carpeta del backend:
+
+    docker compose up -d --build --wait backend
+    docker compose exec backend node scripts/seed-demo.cjs --local
+
+Fuera de Docker, con DATABASE_URL local:
+
+    npm run build
+    npm run db:migrate
+    npm run db:seed:demo -- --local
+
+Repetir el seed conserva movimientos posteriores, turnos cerrados por el usuario, nombres de cajas, contraseñas y existencias. También amplía una demo anterior sin caja. Si alguna cuenta demo ya tiene un turno abierto ajeno a estos ejemplos, la primera ampliación se rechaza y conserva todo: cierra ese turno antes de reintentar. No ejecutes un reset de la base para añadir estos ejemplos.
+
+## Auditoría, notificaciones de pedidos y promociones
+
+Implementados historial ADMIN con valores anteriores/nuevos, avisos propios de clientes con correo persistente/reintentos, y promociones porcentuales controladas en ventas de mostrador. Consulta [contratos, permisos y alcance](docs/admin-features-api.md). El correo local se consulta en Mailpit; producción requiere SMTP real.
+
+## CI y preparación del despliegue
+
+`.github/workflows/ci.yml` ejecuta `Backend checks` en PR a master y en cambios a
+master: auditoría de producción, build/lint, pruebas y bases PostgreSQL/Mailpit
+independientes, además de construir y arrancar la imagen Docker. No despliega.
+
+La dependencia deepmerge-ts usada por Prisma está corregida mediante un override
+acotado; ver [auditoría vigente](docs/dependency-security.md). La configuración
+local puede comprobarse sin modificar datos:
+
+```bash
+npm run deploy:check -- --compose --frontend-env ../template-NuxtJS-frontend/.env
+```
+
+Consultar [actualización coordinada y restauración](docs/deployment.md) para
+reconciliar envíos antiguos, configurar el secreto, verificar un backup y aplicar
+las migraciones antes de actualizar Nuxt. La validación de configuración no
+sustituye la comprobación de backup ni la disponibilidad real de los servicios.
