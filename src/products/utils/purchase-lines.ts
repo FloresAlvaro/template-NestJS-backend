@@ -11,6 +11,8 @@ import {
 import type { SaleLineDto } from '../../sales/dto/sales.dto';
 
 export type PurchaseLine = {
+  listUnitPrice?: Prisma.Decimal;
+  unitDiscount?: Prisma.Decimal;
   productId: number;
   productName: string;
   sku: string;

@@ -1,3 +1,4 @@
+import { auditContext } from '../../audit/context/audit-context';
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaPg } from '@prisma/adapter-pg';
@@ -31,6 +32,8 @@ export class PrismaService
     return this.$transaction(
       async (tx) => {
         await tx.$executeRaw`SELECT pg_advisory_xact_lock(7140321)`;
+        const actor = auditContext.getStore();
+        await tx.$executeRaw`SELECT set_config('app.audit_actor', ${JSON.stringify(actor ? { userId: actor.userId, name: actor.name } : null)},true)`;
         return operation(tx);
       },
       { maxWait: 10000, timeout: 30000 },

@@ -443,3 +443,7 @@ Fuera de Docker, con DATABASE_URL local:
     npm run db:seed:demo -- --local
 
 Repetir el seed conserva movimientos posteriores, turnos cerrados por el usuario, nombres de cajas, contraseñas y existencias. También amplía una demo anterior sin caja. Si alguna cuenta demo ya tiene un turno abierto ajeno a estos ejemplos, la primera ampliación se rechaza y conserva todo: cierra ese turno antes de reintentar. No ejecutes un reset de la base para añadir estos ejemplos.
+
+## Auditoría, notificaciones de pedidos y promociones
+
+Implementados historial ADMIN con valores anteriores/nuevos, avisos propios de clientes con correo persistente/reintentos, y promociones porcentuales controladas en ventas de mostrador. Consulta [contratos, permisos y alcance](docs/admin-features-api.md). El correo local se consulta en Mailpit; producción requiere SMTP real.

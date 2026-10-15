@@ -181,3 +181,10 @@ npm run test:e2e -- --runInBand
 - Cobros y reembolsos usan el turno propio abierto o cashShiftId explícito; la API conserva compatibilidad con registros sin turno. Nuevos flujos Nuxt envían identificador explícito. El ledger y la operación se guardan bajo catalogWrite en un solo commit. Tarjeta/transferencia no afectan el efectivo.
 - El cierre valida lastMovementId y registra contado, esperado y diferencia exactos. Los reintentos conservan UUID/actor/hash incluso después del cierre.
 - /inventory/alerts descuenta reservas PENDING vigentes y excluye padres inactivos; no sustituirlo por el reporte histórico de stock físico. Ver docs/cash-and-stock-alerts-api.md.
+
+## Auditoría, avisos y promociones
+
+- CatalogWrite transmite el actor de sesión en contexto local a la transacción. Los triggers de auditoría capturan solo campos permitidos; no introducir hashes, tokens o binarios ni APIs para borrar/editar AuditLog. Los scripts sin sesión quedan como Proceso del sistema.
+- Las transiciones notificables de Order encolan una sola vez por pedido/estado mediante trigger transaccional. El worker SMTP usa lease, reintentos limitados y Message-ID estable; la entrega externa es al menos una vez. No enviar correo dentro de la transacción de pedido.
+- Promociones porcentuales se aplican solo a ventas de mostrador, una por venta, con permiso, vigencia, mínimo y versión esperados. Redondear descuento por unidad HALF_UP antes de multiplicar. Devoluciones usan unitPrice final histórico; no recalcular descuentos con promociones actuales.
+- Mantener compatibilidad de hashes y ventas anteriores sin promoción. Ver docs/admin-features-api.md.

@@ -30,6 +30,33 @@ export class SaleLineDto {
   expectedUnitPrice!: string;
 }
 export class CreateSaleDto {
+  @ValidateIf((_object, value: unknown) => value !== undefined)
+  @IsInt()
+  @Min(1)
+  @Max(2147483647)
+  @ApiPropertyOptional({
+    description:
+      'One controlled promotion; requires expectedPromotionVersion and expectedTotal',
+  })
+  promotionId?: number;
+  @ValidateIf(
+    (object: CreateSaleDto, value: unknown) =>
+      object.promotionId !== undefined || value !== undefined,
+  )
+  @IsInt()
+  @Min(1)
+  @Max(2147483647)
+  @ApiPropertyOptional()
+  expectedPromotionVersion?: number;
+  @ValidateIf(
+    (object: CreateSaleDto, value: unknown) =>
+      object.promotionId !== undefined || value !== undefined,
+  )
+  @IsString()
+  @Matches(/^(0|[1-9]\d{0,15})\.\d{2}$/)
+  @ApiPropertyOptional()
+  expectedTotal?: string;
+
   @ApiProperty() @IsUUID('4') requestId!: string;
   @ApiProperty() @IsInt() @Min(1) @Max(2147483647) customerId!: number;
   @ApiProperty({ type: [SaleLineDto] })

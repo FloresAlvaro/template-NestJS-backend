@@ -171,3 +171,5 @@ usar `docker compose up -d --build backend`.
 La suite cash-alerts.e2e-spec.ts amplía la batería con transacciones de caja y alertas por disponibilidad. Se ejecuta con test:e2e sobre TEST_DATABASE_URL terminada en _test. Para la batería completa, conservar Mailpit temporal para recuperación de contraseña. La prueba de rollback genera intencionalmente un error 500 y verifica que no se guardan cobros ni movimientos parciales.
 
 El seed demo también prueba cinco turnos, diez movimientos y tres cierres con diferencias exactas (0.00, -5.00, 2.00). Verifica ampliación desde una demo sin caja, preservación de movimientos posteriores, rechazo de colisiones/turnos ajenos y rollback completo ante un fallo de caja.
+
+La suite admin-features.e2e-spec.ts verifica auditoría transaccional, promociones y notificaciones de pedidos contra PostgreSQL y Mailpit aislados. Requiere TEST_DATABASE_URL, TEST_MAILPIT_URL y TEST_SMTP_PORT. Los errores 500 de auditoría son inyectados intencionalmente para probar rollback; no indican un fallo de la suite.

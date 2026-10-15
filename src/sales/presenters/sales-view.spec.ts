@@ -35,6 +35,9 @@ function operation(
 }
 function sale(operations: SaleDetail['operations'] = []): SaleDetail {
   return {
+    grossTotal: null,
+    discountTotal: null,
+    promotionSnapshot: null,
     saleId: 1,
     requestId: '22222222-2222-4222-8222-222222222222',
     requestHash: 'private-sale-hash',
@@ -51,6 +54,8 @@ function sale(operations: SaleDetail['operations'] = []): SaleDetail {
         saleItemId: 1,
         saleId: 1,
         productId: 1,
+        listUnitPrice: null,
+        unitDiscount: null,
         productName: 'Historical name',
         sku: 'HISTORY',
         quantity: 3,

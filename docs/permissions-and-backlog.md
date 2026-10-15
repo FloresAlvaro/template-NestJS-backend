@@ -1,4 +1,4 @@
-# Permisos y pendientes — 14 de octubre de 2026
+# Permisos y pendientes — 15 de octubre de 2026
 
 Ver [flujo de permisos](flowcharts.md#1-permisos-de-una-petición),
 [UML de usuarios y sesiones](diagrams/uml-classes.md#usuarios-sesiones)
@@ -6,7 +6,7 @@ y el [índice de diagramas](diagrams/README.md).
 
 ## Resultado
 
-El backend declara actualmente **90 rutas en 18 controladores**. Reportes incluye
+El backend declara actualmente **98 rutas en 21 controladores**. Reportes incluye
 siete lecturas exclusivas de ADMIN. Imágenes de gestión permite GET a ADMIN/SELLER
 y POST/DELETE a ADMIN; la lectura pública valida la activación de todos los padres.
 Recuperación de contraseña y pedidos están integrados con Nuxt. Ver
@@ -38,6 +38,9 @@ Todas las rutas de esta tabla llevan el prefijo `/api`.
 | `/customers`, `/customers/:id` | ADMIN/SELLER | POST: ADMIN/SELLER; PATCH por ID: ADMIN |
 | `/sales`, `/sales/:id` | ADMIN/SELLER | POST raíz y `:id/payments`: ADMIN/SELLER; `:id/refunds`, `:id/returns`, `:id/cancel`: ADMIN |
 | `/orders`, `/orders/:id` | ADMIN/SELLER: todos; CUSTOMER: propios | POST raíz: CUSTOMER; `:id/confirm`, `:id/ready`, `:id/complete`: ADMIN/SELLER; `:id/cancel`: ADMIN/SELLER y CUSTOMER propietario, solo PENDING |
+| `/audit` | ADMIN: historial de cambios | No existen |
+| `/promotions`, `/promotions/:id` | ADMIN: todas; SELLER: vigentes y autorizadas | ADMIN: POST raíz, PATCH por ID |
+| `/notifications` | ADMIN: todos; CUSTOMER: propios | PATCH `:id/read`: propio; POST `:id/retry`: ADMIN |
 | `/users` | ADMIN | ADMIN: POST raíz, PATCH `:id`, POST `:id/password` |
 | `/suppliers`, `/suppliers/:id` | ADMIN | ADMIN: POST raíz, PATCH por ID (incluye baja lógica) |
 | `/purchases`, `/purchases/:id` | ADMIN | ADMIN: POST raíz, `:id/receive`, `:id/cancel` |
@@ -86,14 +89,17 @@ implementación ni presupone que todos formen parte del alcance del producto.
 | Media | Automatización frontend y CI | Frontend dispone de typecheck/build y revisión manual; no hay suite automatizada de navegador ni workflows CI versionados |
 | Alta | Completar pruebas HTTP de permisos por ruta y rol | Incluir usuario anónimo, sesión vencida/revocada, Origin y aislamiento del perfil |
 | Implementado localmente | Recuperación de contraseña por correo | SMTP/Mailpit y pantallas Nuxt implementados; proveedor de producción y estrategia de entrega/reintentos pendientes |
-| Implementado parcialmente | Compras de autoservicio | Pedidos CUSTOMER, reservas, retiro y cobros manuales disponibles; carrito persistente, envíos, pasarela y notificaciones pendientes |
+| Implementado parcialmente | Compras de autoservicio | Pedidos CUSTOMER, reservas, retiro y cobros manuales disponibles; carrito persistente, envíos y pasarela pendientes; avisos de estados implementados |
 | Alta | Búsqueda y filtros del catálogo público | Actualmente solo paginación; búsqueda, categoría, precio y disponibilidad pendientes |
 | Implementado | Caja: apertura, cierre y arqueo | Turnos por responsable, movimientos, métodos separados y cierres auditados; ver [contrato](cash-and-stock-alerts-api.md). Cierre por supervisor y conciliación bancaria pendientes |
 | Implementado | Alertas operativas de stock | Disponibilidad descontando reservas, aviso en Inicio y vista filtrable; correo/push pendientes |
 | Implementado | Reportes de ventas y existencias | Siete endpoints y seis gráficos Nuxt con tablas exactas y filtros; exportaciones, metas y rentabilidad pendientes |
 | Media | Comprobantes y exportaciones | Impresión de comprobantes comerciales y descarga CSV/PDF pendientes; no equivalen a facturación fiscal |
 | Implementado | Proveedores, compras y recepción | ADMIN: compras pendientes, recepción completa idempotente con entradas auditadas y costos opcionales; ver [contrato](purchases-api.md). Parciales, devoluciones y cuentas por pagar pendientes |
-| Según necesidad comercial | Descuentos e impuestos | No incluidos actualmente; requieren reglas monetarias e historial |
+| Implementado | Descuentos y promociones | Porcentaje, vigencia, mínimo, permisos e historial en ventas de mostrador; autoservicio y acumulación no incluidos |
+| Implementado | Auditoría administrativa | ADMIN consulta snapshots de catálogo, precios, costos, roles y promociones; sin secretos |
+| Implementado | Notificaciones de pedidos | Avisos CUSTOMER y cola SMTP con reintentos/supervisión ADMIN; proveedor de producción pendiente |
+| Según necesidad comercial | Impuestos | Pendientes de reglas comerciales y fiscales |
 | Según necesidad comercial | Facturación fiscal y notas de crédito | No implementadas; definir requisitos e integración antes de diseñar |
 | Según necesidad comercial | Pasarela de pagos | No implementada; requiere conciliación, webhooks e idempotencia externa |
 | Según necesidad comercial | Sucursales, moneda múltiple o productos por peso | Fuera del modelo actual; requieren rediseño explícito |

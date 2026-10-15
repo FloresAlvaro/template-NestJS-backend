@@ -1,6 +1,6 @@
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import nodemailer from 'nodemailer';
+import { smtpTransport } from '../../common/mail/smtp-transport';
 
 @Injectable()
 export class RecoveryMailService {
@@ -40,26 +40,8 @@ export class RecoveryMailService {
     ) {
       throw new ServiceUnavailableException('Invalid password recovery URL');
     }
-    const user = this.config.get<string>('SMTP_USER');
-    const pass = this.config.get<string>('SMTP_PASSWORD');
-    if (Boolean(user) !== Boolean(pass))
-      throw new ServiceUnavailableException('Incomplete SMTP authentication');
-    const transport = nodemailer.createTransport({
-      host,
-      port,
-      secure: this.config.get<string>('SMTP_SECURE', 'false') === 'true',
-      requireTLS:
-        this.config.get<string>('SMTP_REQUIRE_TLS', 'true') === 'true',
-      ...(user && pass ? { auth: { user, pass } } : {}),
-      connectionTimeout: 5000,
-      greetingTimeout: 5000,
-      socketTimeout: 5000,
-      logger: false,
-      debug: false,
-      disableFileAccess: true,
-      disableUrlAccess: true,
-    });
-    return { transport, from, url };
+    const { transport, from: mailFrom } = smtpTransport(this.config);
+    return { transport, from: mailFrom, url };
   }
 
   async ready() {

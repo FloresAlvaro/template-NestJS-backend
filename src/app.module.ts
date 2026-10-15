@@ -1,3 +1,6 @@
+import { NotificationsModule } from './notifications/notifications.module';
+import { AuditModule } from './audit/audit.module';
+import { PromotionsModule } from './promotions/promotions.module';
 import { CashModule } from './cash/cash.module';
 import { ShopModule } from './shop/shop.module';
 import { CustomersModule } from './customers/customers.module';
@@ -38,6 +41,9 @@ import { PurchasesModule } from './purchases/purchases.module';
     SuppliersModule,
     PurchasesModule,
     CashModule,
+    AuditModule,
+    NotificationsModule,
+    PromotionsModule,
   ],
   controllers: [],
   providers: [],

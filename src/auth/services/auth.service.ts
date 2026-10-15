@@ -21,18 +21,20 @@ export class AuthService {
   async createAccount(dto: RegisterDto, role: Role) {
     const passwordHash = await hashPassword(dto.password);
     try {
-      return await this.db.user.create({
-        data: {
-          name: dto.name,
-          email: dto.email,
-          passwordHash,
-          role,
-          ...(role === Role.CUSTOMER
-            ? { customer: { create: { name: dto.name } } }
-            : {}),
-        },
-        select: userSelect,
-      });
+      return await this.db.catalogWrite((tx) =>
+        tx.user.create({
+          data: {
+            name: dto.name,
+            email: dto.email,
+            passwordHash,
+            role,
+            ...(role === Role.CUSTOMER
+              ? { customer: { create: { name: dto.name } } }
+              : {}),
+          },
+          select: userSelect,
+        }),
+      );
     } catch (err) {
       if (
         err instanceof Prisma.PrismaClientKnownRequestError &&
@@ -83,7 +85,7 @@ export class AuthService {
     return { success: true };
   }
   async profile(userId: number, name: string) {
-    return this.db.$transaction(async (tx) => {
+    return this.db.catalogWrite(async (tx) => {
       await tx.customer.updateMany({ where: { userId }, data: { name } });
       return tx.user.update({
         where: { userId },

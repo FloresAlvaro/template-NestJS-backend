@@ -2,17 +2,23 @@ import type { Prisma } from '../../../generated/prisma/client';
 import type { PurchaseLine } from '../../products/utils/purchase-lines';
 import { saleInclude } from '../presenters/sales-view';
 
-type SaleHeader = Pick<
-  Prisma.SaleUncheckedCreateInput,
-  | 'customerId'
-  | 'customerName'
-  | 'customerDocument'
-  | 'userId'
-  | 'sellerName'
-  | 'requestId'
-  | 'requestHash'
-  | 'total'
->;
+type SaleHeader = Partial<
+  Pick<
+    Prisma.SaleUncheckedCreateInput,
+    'grossTotal' | 'discountTotal' | 'promotionSnapshot'
+  >
+> &
+  Pick<
+    Prisma.SaleUncheckedCreateInput,
+    | 'customerId'
+    | 'customerName'
+    | 'customerDocument'
+    | 'userId'
+    | 'sellerName'
+    | 'requestId'
+    | 'requestHash'
+    | 'total'
+  >;
 
 // Used by counter sales and confirmed orders inside the same catalogWrite transaction.
 export async function persistSale(
@@ -24,16 +30,16 @@ export async function persistSale(
     data: {
       ...header,
       items: {
-        create: lines.map(
-          ({ productId, productName, sku, quantity, unitPrice, subtotal }) => ({
-            productId,
-            productName,
-            sku,
-            quantity,
-            unitPrice,
-            subtotal,
-          }),
-        ),
+        create: lines.map((line) => ({
+          productId: line.productId,
+          productName: line.productName,
+          sku: line.sku,
+          quantity: line.quantity,
+          unitPrice: line.unitPrice,
+          subtotal: line.subtotal,
+          listUnitPrice: line.listUnitPrice,
+          unitDiscount: line.unitDiscount,
+        })),
       },
     },
     include: saleInclude,

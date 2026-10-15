@@ -248,21 +248,24 @@ model Customer {
 }
 
 model Sale {
-  order            Order?
-  operations       SaleOperation[]
-  saleId           Int             @id @default(autoincrement())
-  requestId        String          @unique @db.Uuid
-  requestHash      String          @db.VarChar(64)
-  customerId       Int
-  customer         Customer        @relation(fields: [customerId], references: [customerId], onDelete: Restrict)
-  userId           Int
-  user             User            @relation(fields: [userId], references: [userId], onDelete: Restrict)
-  customerName     String          @db.VarChar(100)
-  customerDocument String?         @db.VarChar(50)
-  sellerName       String          @db.VarChar(100)
-  total            Decimal         @db.Decimal(18, 2)
-  createdAt        DateTime        @default(now())
-  items            SaleItem[]
+  grossTotal        Decimal?        @db.Decimal(18, 2)
+  discountTotal     Decimal?        @db.Decimal(18, 2)
+  promotionSnapshot Json?
+  order             Order?
+  operations        SaleOperation[]
+  saleId            Int             @id @default(autoincrement())
+  requestId         String          @unique @db.Uuid
+  requestHash       String          @db.VarChar(64)
+  customerId        Int
+  customer          Customer        @relation(fields: [customerId], references: [customerId], onDelete: Restrict)
+  userId            Int
+  user              User            @relation(fields: [userId], references: [userId], onDelete: Restrict)
+  customerName      String          @db.VarChar(100)
+  customerDocument  String?         @db.VarChar(50)
+  sellerName        String          @db.VarChar(100)
+  total             Decimal         @db.Decimal(18, 2)
+  createdAt         DateTime        @default(now())
+  items             SaleItem[]
 
   @@index([createdAt, saleId])
   @@index([customerId])
@@ -285,26 +288,27 @@ enum OrderOperationKind {
 }
 
 model Order {
-  orderId          Int              @id @default(autoincrement())
-  requestId        String           @unique @db.Uuid
-  requestHash      String           @db.VarChar(64)
+  notifications    OrderNotification[]
+  orderId          Int                 @id @default(autoincrement())
+  requestId        String              @unique @db.Uuid
+  requestHash      String              @db.VarChar(64)
   userId           Int
-  user             User             @relation(fields: [userId], references: [userId], onDelete: Restrict)
+  user             User                @relation(fields: [userId], references: [userId], onDelete: Restrict)
   customerId       Int
-  customer         Customer         @relation(fields: [customerId], references: [customerId], onDelete: Restrict)
-  customerName     String           @db.VarChar(100)
-  customerDocument String?          @db.VarChar(50)
-  status           OrderStatus      @default(PENDING)
-  total            Decimal          @db.Decimal(18, 2)
+  customer         Customer            @relation(fields: [customerId], references: [customerId], onDelete: Restrict)
+  customerName     String              @db.VarChar(100)
+  customerDocument String?             @db.VarChar(50)
+  status           OrderStatus         @default(PENDING)
+  total            Decimal             @db.Decimal(18, 2)
   expiresAt        DateTime
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
   confirmedAt      DateTime?
   readyAt          DateTime?
   completedAt      DateTime?
   cancelledAt      DateTime?
-  saleId           Int?             @unique
-  sale             Sale?            @relation(fields: [saleId], references: [saleId], onDelete: Restrict)
+  saleId           Int?                @unique
+  sale             Sale?               @relation(fields: [saleId], references: [saleId], onDelete: Restrict)
   items            OrderItem[]
   operations       OrderOperation[]
 
@@ -347,6 +351,8 @@ model OrderOperation {
 }
 
 model SaleItem {
+  listUnitPrice  Decimal?            @db.Decimal(18, 2)
+  unitDiscount   Decimal?            @db.Decimal(18, 2)
   operationItems SaleOperationItem[]
   saleItemId     Int                 @id @default(autoincrement())
   saleId         Int
@@ -475,4 +481,56 @@ enum CashMovementKind {
   CASH_OUT
   PAYMENT
   REFUND
+}
+
+model AuditLog {
+  auditId   Int      @id @default(autoincrement())
+  actorId   Int?
+  actorName String   @db.VarChar(100)
+  entity    String   @db.VarChar(40)
+  entityId  Int
+  action    String   @db.VarChar(10)
+  before    Json?
+  after     Json?
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId, auditId])
+  @@index([actorId, auditId])
+}
+
+model Promotion {
+  promotionId Int      @id @default(autoincrement())
+  code        String   @unique @db.VarChar(40)
+  name        String   @db.VarChar(150)
+  percentBps  Int
+  startsAt    DateTime
+  endsAt      DateTime
+  isActive    Boolean  @default(true)
+  allowSeller Boolean  @default(false)
+  minSubtotal Decimal  @default(0) @db.Decimal(18, 2)
+  version     Int      @default(1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model OrderNotification {
+  readAt         DateTime?
+  notificationId Int         @id @default(autoincrement())
+  orderId        Int
+  order          Order       @relation(fields: [orderId], references: [orderId], onDelete: Cascade)
+  userId         Int
+  status         OrderStatus
+  recipient      String      @db.VarChar(254)
+  subject        String      @db.VarChar(150)
+  body           String
+  attempts       Int         @default(0)
+  nextAttemptAt  DateTime    @default(now())
+  leaseUntil     DateTime?
+  deliveredAt    DateTime?
+  lastError      String?     @db.VarChar(150)
+  createdAt      DateTime    @default(now())
+
+  @@unique([orderId, status])
+  @@index([deliveredAt, nextAttemptAt])
+  @@index([userId, notificationId])
 }

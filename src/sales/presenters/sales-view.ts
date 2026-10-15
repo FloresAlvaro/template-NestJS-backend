@@ -43,6 +43,8 @@ export function serializeSale(sale: SaleDetail) {
   return {
     ...sale,
     requestHash: undefined,
+    grossTotal: (sale.grossTotal ?? sale.total).toFixed(2),
+    discountTotal: (sale.discountTotal ?? new Prisma.Decimal(0)).toFixed(2),
     total: sale.total.toFixed(2),
     status: balance.cancelled
       ? 'CANCELLED'
@@ -60,6 +62,8 @@ export function serializeSale(sale: SaleDetail) {
     refundDue: balance.refundDue.toFixed(2),
     items: sale.items.map((item) => ({
       ...item,
+      listUnitPrice: (item.listUnitPrice ?? item.unitPrice).toFixed(2),
+      unitDiscount: (item.unitDiscount ?? new Prisma.Decimal(0)).toFixed(2),
       unitPrice: item.unitPrice.toFixed(2),
       subtotal: item.subtotal.toFixed(2),
       returnedQuantity: returnedQuantity(item.saleItemId),

@@ -1,5 +1,7 @@
+import { applyPromotion } from '../../promotions/utils/apply-promotion';
 import {
   ConflictException,
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -23,8 +25,26 @@ import {
 export class SalesService {
   constructor(private readonly db: PrismaService) {}
   create(dto: CreateSaleDto, userId: number) {
+    if (
+      dto.promotionId === undefined &&
+      (dto.expectedTotal !== undefined ||
+        dto.expectedPromotionVersion !== undefined)
+    )
+      throw new BadRequestException(
+        'Selecciona una promoción para confirmar el descuento',
+      );
     const items = sortedPurchaseItems(dto.items);
-    const requestHash = hashRequest({ customerId: dto.customerId, items });
+    const requestHash = hashRequest({
+      customerId: dto.customerId,
+      items,
+      ...(dto.promotionId !== undefined
+        ? {
+            promotionId: dto.promotionId,
+            expectedPromotionVersion: dto.expectedPromotionVersion,
+            expectedTotal: dto.expectedTotal,
+          }
+        : {}),
+    });
     return this.db.catalogWrite(async (tx) => {
       const existing = await tx.sale.findUnique({
         where: { requestId: dto.requestId },
@@ -48,7 +68,20 @@ export class SalesService {
         throw new ForbiddenException(
           'El usuario no está habilitado para registrar ventas',
         );
-      const { lines, total } = await preparePurchase(tx, items);
+      const prepared = await preparePurchase(tx, items);
+      const discounted =
+        dto.promotionId !== undefined
+          ? await applyPromotion(
+              tx,
+              prepared.lines,
+              prepared.total,
+              seller.role,
+              dto.promotionId,
+              dto.expectedPromotionVersion!,
+              dto.expectedTotal!,
+            )
+          : null;
+      const { lines, total } = discounted ?? prepared;
       return serialize(
         await persistSale(
           tx,
@@ -61,6 +94,13 @@ export class SalesService {
             customerDocument: customer.document,
             sellerName: seller.name,
             total,
+            ...(discounted
+              ? {
+                  grossTotal: discounted.grossTotal,
+                  discountTotal: discounted.discountTotal,
+                  promotionSnapshot: discounted.promotionSnapshot,
+                }
+              : {}),
           },
           lines,
         ),
