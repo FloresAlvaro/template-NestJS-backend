@@ -1,7 +1,7 @@
 [Unit]
 Description=Backup PostgreSQL y configuración de Tienda
 Requires=docker.service
-After=docker.service tienda.service
+After=docker.service tienda-caddy.service
 
 [Service]
 Type=oneshot

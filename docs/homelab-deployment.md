@@ -1,5 +1,11 @@
 # Tienda en el home lab
 
+Esta guía describe la alternativa con **Caddy** en `deploy/homelab-caddy`.
+El despliegue Nginx ya integrado conserva sus archivos en
+[`deploy/homelab`](../deploy/homelab/README.md). Son alternativas independientes:
+elige una y no las ejecutes en la misma IP/puertos. Caddy tiene otro nombre de
+proyecto, unidades systemd y carpeta de backups; no migra datos del stack Nginx.
+
 Guía para un host **Ubuntu Server 24.04 LTS**, Docker Engine con Compose v2,
 systemd y los dos repositorios como carpetas hermanas. Los comandos de esta guía
 son Bash/Linux; no deben pegarse directamente en PowerShell. No se instala Node
@@ -115,10 +121,11 @@ con desafío DNS y módulo del proveedor; la imagen incluida no trae esos módul
 Si ya hay un proxy usando 80/443, evita el conflicto: integra la tienda allí o
 dedica otra IP/VM a este stack. No encadenes proxies sin revisar las URLs/orígenes.
 
-Antes de abrir a Internet revisa `permissions-and-backlog.md`: quedan pendientes
-el límite centralizado de autenticación, la política de stock público y la revisión
-de dependencias. Este stack no convierte el limitador por proceso en uno por IP
-del visitante; detrás de Nuxt varios clientes pueden compartir el límite.
+Antes de abrir a Internet revisa `permissions-and-backlog.md`: define la política
+de stock público y revisa dependencias y operación. El limitador de autenticación
+actual es compartido en PostgreSQL; el secreto y la IP de proxy configurados abajo
+conservan la identidad del cliente. Si añades otro proxy delante de Caddy, revisa
+esa frontera de confianza antes de publicar.
 
 ## 4. Configuración y secretos
 
@@ -138,6 +145,8 @@ Configura:
 | `TIENDA_HOST` | Nombre DNS, sin esquema, ruta ni barra final |
 | `BIND_IP` | IP LAN real del host; el ejemplo `127.0.0.1` solo acepta acceso local |
 | `POSTGRES_PASSWORD` | Resultado hexadecimal aleatorio del comando anterior |
+| `AUTH_PROXY_SECRET` | Otro secreto independiente generado con `openssl rand -hex 32`, compartido solo por Nuxt y NestJS |
+| `CADDY_IP`, `CADDY_SUBNET` | IP fija de Caddy y subred Docker libre; la IP debe pertenecer a esa subred |
 | `APP_TAG` | Identificador de release; usa un valor nuevo en cada actualización |
 | `SMTP_HOST`, `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_FROM` | Proveedor SMTP y remitente autorizado |
 | `SMTP_PORT`, `SMTP_SECURE`, `SMTP_REQUIRE_TLS` | Normalmente 587/false/true; para TLS implícito 465/true/true |
@@ -156,6 +165,11 @@ Nuxt usa `http://backend:3001/api` solo dentro de Docker. El navegador sigue usa
 `/api` del mismo origen HTTPS. Mailpit no está incluido: no entrega correo real.
 Si usas SMTP local, configura un relay accesible desde la red Docker; `localhost`
 dentro del backend apunta al propio contenedor.
+
+Caddy sobrescribe `X-Real-IP` con la IP de su conexión. Nuxt acepta ese encabezado
+solo desde `CADDY_IP`, elimina afirmaciones del cliente y firma la identidad para
+NestJS con `AUTH_PROXY_SECRET`. El backend aplica el limitador compartido en BD.
+No habilites `trust proxy` global ni aceptes encabezados de IP de cualquier origen.
 
 ## 5. Compilar, iniciar y crear administrador
 
@@ -199,26 +213,26 @@ administradores de confianza.
 
 ```bash
 cd /srv/tienda/template-NestJS-backend/deploy/homelab-caddy
-sudo install -m 0644 tienda.service /etc/systemd/system/tienda.service
-sudo install -m 0644 tienda-backup.service /etc/systemd/system/tienda-backup.service
-sudo install -m 0644 tienda-backup.timer /etc/systemd/system/tienda-backup.timer
+sudo install -m 0644 tienda-caddy.service /etc/systemd/system/tienda-caddy.service
+sudo install -m 0644 tienda-caddy-backup.service /etc/systemd/system/tienda-caddy-backup.service
+sudo install -m 0644 tienda-caddy-backup.timer /etc/systemd/system/tienda-caddy-backup.timer
 sudo systemctl daemon-reload
-sudo systemctl enable --now tienda.service
-sudo systemctl enable --now tienda-backup.timer
-sudo systemctl status tienda.service --no-pager
-sudo systemctl list-timers tienda-backup.timer
+sudo systemctl enable --now tienda-caddy.service
+sudo systemctl enable --now tienda-caddy-backup.timer
+sudo systemctl status tienda-caddy.service --no-pager
+sudo systemctl list-timers tienda-caddy-backup.timer
 ```
 
 Docker arranca al encender Linux; systemd levanta el stack y los contenedores usan
 `restart: unless-stopped`. La unidad no compila imágenes al arrancar: haz el build
 antes. Programa un reinicio de prueba y confirma acceso y timer al volver. Para
-detener deliberadamente usa `sudo systemctl stop tienda.service`; para arrancar
-otra vez `sudo systemctl start tienda.service`. No uses `down -v` sobre esta tienda.
+detener deliberadamente usa `sudo systemctl stop tienda-caddy.service`; para arrancar
+otra vez `sudo systemctl start tienda-caddy.service`. No uses `down -v` sobre esta tienda.
 Un estado `unhealthy` por sí solo no reinicia el proceso; supervisa salud y disco.
 
 ## 7. Backups diarios y copia fuera del host
 
-`backup.sh` crea `/var/backups/tienda/FECHA_UTC/` con:
+`backup.sh` crea `/var/backups/tienda-caddy/FECHA_UTC/` con:
 
 - `database.dump`: pg_dump formato custom, snapshot consistente con la tienda activa.
 - `database.list`: índice legible del dump.
@@ -235,9 +249,9 @@ historial WAL ni recuperación a un segundo exacto. Ver
 
 ```bash
 sudo bash backup.sh
-sudo systemctl start tienda-backup.service
-sudo journalctl -u tienda-backup.service -n 50 --no-pager
-sudo ls -lh /var/backups/tienda
+sudo systemctl start tienda-caddy-backup.service
+sudo journalctl -u tienda-caddy-backup.service -n 50 --no-pager
+sudo ls -lh /var/backups/tienda-caddy
 ```
 
 El timer ejecuta a las 03:00 America/La_Paz con hasta 5 minutos de dispersión y
@@ -259,7 +273,7 @@ sudo bash -c 'set -a; source /etc/tienda-restic.env; set +a; restic init'
 Para copiar automáticamente después de cada backup local:
 
 ```bash
-sudo systemctl edit tienda-backup.service
+sudo systemctl edit tienda-caddy-backup.service
 ```
 
 Añade el drop-in:
@@ -267,12 +281,12 @@ Añade el drop-in:
 ```ini
 [Service]
 EnvironmentFile=/etc/tienda-restic.env
-ExecStartPost=/usr/bin/restic backup /var/backups/tienda --exclude=/var/backups/tienda/.partial-* --tag tienda
+ExecStartPost=/usr/bin/restic backup /var/backups/tienda-caddy --exclude=/var/backups/tienda-caddy/.partial-* --tag tienda
 ```
 
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl start tienda-backup.service
+sudo systemctl start tienda-caddy-backup.service
 sudo bash -c 'set -a; source /etc/tienda-restic.env; set +a; restic snapshots; restic check'
 ```
 
@@ -294,7 +308,7 @@ Ejecuta al instalar, después de cambiar el esquema y al menos mensualmente:
 
 ```bash
 cd /srv/tienda/template-NestJS-backend/deploy/homelab-caddy
-sudo bash restore-test.sh /var/backups/tienda/FECHA_UTC
+sudo bash restore-test.sh /var/backups/tienda-caddy/FECHA_UTC
 ```
 
 El script verifica checksums, arranca `restore-db` (sin puerto publicado), exige
@@ -312,7 +326,7 @@ prueba**, después de revisar que estos comandos apuntan a `restore-db`:
 ```bash
 sudo docker compose --profile restore exec -T restore-db dropdb -U tienda --if-exists tienda_restore
 sudo docker compose --profile restore exec -T restore-db createdb -U tienda -O tienda tienda_restore
-sudo bash restore-test.sh /var/backups/tienda/FECHA_UTC
+sudo bash restore-test.sh /var/backups/tienda-caddy/FECHA_UTC
 sudo docker compose --profile restore stop restore-db
 ```
 
@@ -363,10 +377,10 @@ registrados. Revisa las migraciones y programa una ventana; detén la unidad, ca
 ambos checkouts a las revisiones compatibles, actualiza APP_TAG, compila e inicia:
 
 ```bash
-sudo systemctl stop tienda.service
+sudo systemctl stop tienda-caddy.service
 # git fetch y git switch --detach SHA en cada repositorio; edita APP_TAG en .env.
 sudo docker compose build --pull
-sudo systemctl start tienda.service
+sudo systemctl start tienda-caddy.service
 sudo docker compose ps
 sudo docker compose logs --tail=100 backend frontend caddy
 ```
@@ -384,7 +398,7 @@ las operaciones posteriores que se perderían. Nunca ejecutes migrate reset.
 | ACME falla | A/AAAA, CGNAT, puertos 80/443 y logs Caddy |
 | Migración falla | Logs backend, BD accesible y revisión compatible; conservar volúmenes |
 | Correos no llegan | SMTP/TLS/remitente, avisos ADMIN y rechazo del proveedor |
-| Backup falla | `journalctl -u tienda-backup.service`, disco, PostgreSQL y Caddy activos |
+| Backup falla | `journalctl -u tienda-caddy-backup.service`, disco, PostgreSQL y Caddy activos |
 
 Revisa periódicamente uso de disco (`df -h`, `docker system df`), espacio en NAS,
 logs, certificados, parches del host, dependencias e imágenes. No ejecutes prune

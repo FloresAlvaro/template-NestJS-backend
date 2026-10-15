@@ -2,7 +2,10 @@ import { Test } from '@nestjs/testing';
 import type { INestApplication } from '@nestjs/common';
 import type { App } from 'supertest/types';
 import request from 'supertest';
-import { randomUUID } from 'node:crypto';
+import { createHmac, randomUUID } from 'node:crypto';
+import { ConfigService } from '@nestjs/config';
+import { PrismaService } from '../src/database/services/prisma.service';
+import { consumeAuthAttempt } from '../src/auth/security/auth-throttle';
 import { AppModule } from '../src/app.module';
 import { configureApp } from '../src/config/configure-app';
 
@@ -81,5 +84,76 @@ describe('Authentication throttle routing regressions', () => {
       .set('Origin', origin)
       .send({})
       .expect(429);
+  });
+  it('bounds expired-counter cleanup and retains the active counter', async () => {
+    const db = app.get(PrismaService);
+    await db.authRateLimit.createMany({
+      data: Array.from({ length: 150 }, () => ({
+        key: randomUUID(),
+        attempts: 11,
+        expiresAt: new Date(Date.now() - 600000),
+      })),
+    });
+    await consumeAuthAttempt(db, 'cleanup-active');
+    expect(await db.authRateLimit.count({ where: { attempts: 11 } })).toBe(50);
+    await Promise.all(
+      Array.from({ length: 9 }, () => consumeAuthAttempt(db, 'cleanup-active')),
+    );
+    expect(await db.authRateLimit.count({ where: { attempts: 11 } })).toBe(0);
+    await expect(
+      consumeAuthAttempt(db, 'cleanup-active'),
+    ).rejects.toMatchObject({ status: 429 });
+  });
+
+  it('shares atomic limits across instances while keeping signed clients independent', async () => {
+    const secret = 'integration-proxy-secret-at-least-32-characters';
+    app.get(ConfigService).set('AUTH_PROXY_SECRET', secret);
+    const module = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+    const second = module.createNestApplication<INestApplication<App>>();
+    second.get(ConfigService).set('AUTH_PROXY_SECRET', secret);
+    configureApp(second);
+    await second.init();
+    const headers = (ip: string) => {
+      const at = String(Date.now());
+      return {
+        Origin: origin,
+        'x-tienda-client-ip': ip,
+        'x-tienda-client-at': at,
+        'x-tienda-client-signature': createHmac('sha256', secret)
+          .update(`${at}\n${ip}`)
+          .digest('hex'),
+      };
+    };
+    const attempt = (target: INestApplication<App>, ip: string) =>
+      request(target.getHttpServer())
+        .post('/api/auth/login')
+        .set(headers(ip))
+        .send({
+          email: 'missing@example.test',
+          password: 'incorrect-password',
+        });
+    try {
+      const results = await Promise.all(
+        Array.from({ length: 12 }, (_, i) =>
+          attempt(i % 2 ? second : app, '203.0.113.1'),
+        ),
+      );
+      expect(results.filter((r) => r.status === 401)).toHaveLength(10);
+      expect(results.filter((r) => r.status === 429)).toHaveLength(2);
+      await attempt(second, '203.0.113.2').expect(401);
+      await request(app.getHttpServer())
+        .post('/api/auth/login')
+        .set({ ...headers('203.0.113.1'), 'x-tienda-client-ip': '203.0.113.3' })
+        .send({})
+        .expect(403);
+      await app.get(PrismaService).authRateLimit.updateMany({
+        data: { expiresAt: new Date(Date.now() - 1000) },
+      });
+      await attempt(app, '203.0.113.1').expect(401);
+    } finally {
+      await second.close();
+    }
   });
 });

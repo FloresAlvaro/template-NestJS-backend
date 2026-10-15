@@ -24,7 +24,10 @@ export async function applyPromotion(
       'La promoción cambió, está inactiva o fuera de vigencia. Actualiza y revisa el total',
     );
   if (role !== 'ADMIN' && !p.allowSeller)
-    throw new ForbiddenException('Esta promoción requiere un administrador');
+    throw new ForbiddenException({
+      code: 'PROMOTION_NOT_ALLOWED',
+      message: 'Esta promoción requiere un administrador',
+    });
   if (gross.lt(p.minSubtotal))
     throw new ConflictException(
       'La venta no alcanza el mínimo de la promoción',

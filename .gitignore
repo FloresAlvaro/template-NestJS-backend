@@ -61,3 +61,5 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 /deploy/homelab-caddy/.env
 /deploy/homelab-caddy/*.dump
 /deploy/homelab-caddy/*.tar.gz
+# Private homelab credentials, TLS keys and database backups
+/deploy/homelab/private/

@@ -3,7 +3,7 @@ set -Eeuo pipefail
 umask 077
 cd -- "$(dirname -- "${BASH_SOURCE[0]}")"
 dc=(docker compose --env-file .env -f compose.yaml)
-root=/var/backups/tienda
+root=/var/backups/tienda-caddy
 mkdir -p -- "$root"
 exec 9>"$root/.backup.lock"
 flock -n 9 || { echo 'Ya hay un backup en ejecución.' >&2; exit 1; }
@@ -13,7 +13,7 @@ mkdir -- "$partial"
 # Los fallos conservan .partial para diagnóstico; nunca se anuncian como backup válido.
 "${dc[@]}" exec -T db pg_dump -U tienda -d tienda -Fc > "$partial/database.dump"
 "${dc[@]}" exec -T db pg_restore --list < "$partial/database.dump" > "$partial/database.list"
-tar -czf "$partial/deployment.tar.gz" .env compose.yaml Caddyfile backup.sh restore-test.sh tienda.service tienda-backup.service tienda-backup.timer
+tar -czf "$partial/deployment.tar.gz" .env compose.yaml Caddyfile backup.sh restore-test.sh tienda-caddy.service tienda-caddy-backup.service tienda-caddy-backup.timer
 "${dc[@]}" exec -T caddy tar -C /data -czf - . > "$partial/caddy-data.tar.gz"
 {
   printf 'UTC: %s\n' "$stamp"

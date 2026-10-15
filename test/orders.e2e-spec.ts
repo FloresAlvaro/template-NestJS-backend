@@ -42,7 +42,9 @@ describe('Customer pickup orders and reservations (PostgreSQL)', () => {
     }).compile();
     app = module.createNestApplication<INestApplication<App>>();
     configureApp(app);
-    await app.init();
+    // Keep one listener for the application's lifetime. Supertest's implicit
+    // listen/close per request can race with concurrent requests and pooled sockets.
+    await app.listen(0, '127.0.0.1');
     db = app.get(PrismaService);
   };
   const get = (path: string, actor: Actor = 'CUSTOMER') =>

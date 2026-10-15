@@ -5,7 +5,7 @@ Description=Backup diario Tienda a las 03:00 America/La_Paz
 OnCalendar=*-*-* 03:00:00 America/La_Paz
 Persistent=true
 RandomizedDelaySec=300
-Unit=tienda-backup.service
+Unit=tienda-caddy-backup.service
 
 [Install]
 WantedBy=timers.target

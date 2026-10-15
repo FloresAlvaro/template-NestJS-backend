@@ -513,6 +513,14 @@ model Promotion {
   updatedAt   DateTime @updatedAt
 }
 
+model AuthRateLimit {
+  key       String   @id @db.VarChar(64)
+  attempts  Int
+  expiresAt DateTime @db.Timestamptz(3)
+
+  @@index([expiresAt])
+}
+
 model OrderNotification {
   readAt         DateTime?
   notificationId Int         @id @default(autoincrement())

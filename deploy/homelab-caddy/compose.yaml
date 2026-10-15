@@ -1,4 +1,4 @@
-name: tienda-homelab
+name: tienda-caddy-homelab
 
 x-logging: &logging
   driver: json-file
@@ -32,6 +32,7 @@ services:
     environment:
       DATABASE_URL: postgresql://tienda:${POSTGRES_PASSWORD:?Configura POSTGRES_PASSWORD}@db:5432/tienda?schema=public
       PORT: "3001"
+      AUTH_PROXY_SECRET: ${AUTH_PROXY_SECRET:?Configura AUTH_PROXY_SECRET}
       COOKIE_SECURE: "true"
       TRUSTED_ORIGINS: https://${TIENDA_HOST:?Configura TIENDA_HOST}
       PASSWORD_RESET_URL: https://${TIENDA_HOST:?Configura TIENDA_HOST}/reset-password
@@ -63,6 +64,8 @@ services:
     init: true
     environment:
       NUXT_BACKEND_API_BASE: http://backend:3001/api
+      NUXT_AUTH_PROXY_SECRET: ${AUTH_PROXY_SECRET:?Configura AUTH_PROXY_SECRET}
+      NUXT_TRUSTED_PROXY_IP: ${CADDY_IP:-172.30.73.2}
     depends_on:
       backend:
         condition: service_healthy
@@ -77,6 +80,9 @@ services:
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
+    networks:
+      default:
+        ipv4_address: ${CADDY_IP:-172.30.73.2}
     environment:
       TIENDA_HOST: ${TIENDA_HOST:?Configura TIENDA_HOST}
     ports:
@@ -106,6 +112,12 @@ services:
       timeout: 5s
       retries: 20
     logging: *logging
+
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: ${CADDY_SUBNET:-172.30.73.0/24}
 
 volumes:
   postgres_data:

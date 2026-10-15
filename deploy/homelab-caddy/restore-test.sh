@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 umask 077
-if [[ $# != 1 ]]; then echo "Uso: bash $0 /var/backups/tienda/FECHA" >&2; exit 1; fi
+if [[ $# != 1 ]]; then echo "Uso: bash $0 /var/backups/tienda-caddy/FECHA" >&2; exit 1; fi
 backup=$(realpath -- "$1")
 cd -- "$(dirname -- "${BASH_SOURCE[0]}")"
 dc=(docker compose --env-file .env -f compose.yaml --profile restore)
-mkdir -p /var/backups/tienda
-exec 9>/var/backups/tienda/.restore-test.lock
+mkdir -p /var/backups/tienda-caddy
+exec 9>/var/backups/tienda-caddy/.restore-test.lock
 flock -n 9 || { echo 'Ya hay una restauración de prueba en ejecución.' >&2; exit 1; }
 (cd -- "$backup" && sha256sum -c SHA256SUMS)
 "${dc[@]}" up -d --wait restore-db

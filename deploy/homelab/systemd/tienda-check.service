@@ -1,0 +1,9 @@
+[Unit]
+Description=Verificar servicios, disco, TLS y backup de Tienda Homelab
+Requires=docker.service
+After=docker.service
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/market/template-NestJS-backend/deploy/homelab
+ExecStart=/opt/market/template-NestJS-backend/deploy/homelab/check.sh
+UMask=0077
