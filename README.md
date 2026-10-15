@@ -228,8 +228,8 @@ docker compose exec -e SEED_ADMIN_EMAIL=correo-de-tu-administrador@ejemplo.com b
 
 El seed original (`db:seed`) sigue cargando solamente el catálogo. El modo
 `db:seed:demo` (también `npm run db:seed -- --demo`) incluye ese catálogo y añade escenarios ficticios de todos los
-flujos implementados. Usa un administrador activo existente; no crea un nuevo
-administrador ni modifica su contraseña.
+flujos implementados. Usa un administrador activo existente para auditar la carga
+y añade una cuenta ADMIN de demostración. Conserva las cuentas ya existentes.
 
 Después de actualizar la imagen, ejecuta desde esta carpeta:
 
@@ -238,8 +238,23 @@ docker compose up -d --build backend
 docker compose exec -e SEED_ADMIN_EMAIL=correo-real-de-tu-admin@ejemplo.com backend node scripts/seed-demo.cjs
 ```
 
+Para las pruebas locales con contraseña fija solicitadas, utiliza:
+
+```bash
+docker compose exec backend node scripts/seed-demo.cjs --local
+```
+
+Las seis cuentas demo nuevas usan **`TiendaDemo2026!`**. Es una credencial pública
+de prueba, habilitada explícitamente por `--local` para PostgreSQL en loopback o
+el Compose local. El administrador original conserva su contraseña. Cuando hay
+un único ADMIN activo ajeno a estas cuentas, se selecciona para auditar la carga;
+si hay varios, indica `SEED_ADMIN_EMAIL` como en el comando anterior.
+Fuera de Docker: `npm run db:seed:demo -- --local` con `DATABASE_URL` local.
+Puedes cambiar la contraseña desde Mi cuenta o Usuarios; repetir la demo no la
+restablece. `SEED_DEMO_PASSWORD` permite sustituir la contraseña al crear cuentas.
+
 La terminal pide una contraseña de 12 a 128 caracteres y su confirmación, sin
-mostrarla. Esa contraseña se usa para las cuatro cuentas demo; no se guarda en
+mostrarla cuando no se usa `--local`. Esa contraseña se usa para las seis cuentas demo; no se guarda en
 archivos ni se imprime. Para automatización puede suministrarse mediante
 `SEED_DEMO_PASSWORD`; evita escribir secretos directamente en el historial del
 shell. Con una instalación local ya compilada: configura `DATABASE_URL`,
@@ -248,7 +263,9 @@ shell. Con una instalación local ya compilada: configura `DATABASE_URL`,
 | Cuenta | Rol / uso |
 | --- | --- |
 | Tu administrador existente | Catálogo, inventario, usuarios, reportes y operaciones administrativas |
+| `admin@demo.example.com` | ADMIN activo: proveedores, compras, inventario, reportes y usuarios |
 | `vendedor@demo.example.com` | SELLER activo: ventas, cobros y gestión de pedidos |
+| `laura@demo.example.com` | SELLER activo: segundo vendedor para probar permisos y operaciones |
 | `ana@demo.example.com` | CUSTOMER activo: reservas y pedidos propios |
 | `bruno@demo.example.com` | CUSTOMER activo: otros pedidos para comprobar aislamiento |
 | `inactivo@demo.example.com` | SELLER inactivo: rechazo de inicio de sesión |
@@ -259,7 +276,7 @@ para recibir correo en producción.
 
 La carga inicial genera:
 
-- 46 productos: los 36 del catálogo original y 10 exclusivos de la demo.
+- 49 productos: los 36 del catálogo original, 10 de flujos comerciales y 3 de abastecimiento.
 - 5 clientes: dos con cuenta, dos sin cuenta y uno inactivo.
 - 4 ilustraciones WebP de ejemplo en los productos demo. Otros quedan sin foto
   para comprobar el estado alternativo; no se descargan imágenes externas.
@@ -273,6 +290,13 @@ La carga inicial genera:
   preparado sin pagar, preparado pagado, entregado, cancelado por el cliente,
   vencido y cancelado mediante anulación de su venta.
 - Ventas en distintos días de las últimas dos semanas para revisar reportes.
+- 3 proveedores ficticios: dos activos y uno inactivo.
+- 5 compras: dos pendientes, dos recibidas y una cancelada. Las recibidas
+  muestran entradas auditadas y actualización de costo opcional.
+- Los SKU `DEMO-BUY-001`, `DEMO-BUY-002` y `DEMO-BUY-003` empiezan en cero y
+  reciben 20, 50 y 15 unidades por las compras demo. Sus costos quedan en 2.00,
+  0.50 y 3.10; solo la segunda recepción actualiza el costo. Se preservan los
+  precios de venta. Las compras no representan pagos al proveedor.
 
 Las cantidades describen una base inicial vacía. Si ya existen registros, se
 conservan y la demo se añade. Las ventas, cobros, devoluciones, fotos y transiciones
@@ -284,12 +308,16 @@ manuales; no ejecutan transacciones bancarias.
 Repetir la demo **no restablece estados, contraseñas, fotos ni stock** y no crea
 más operaciones. Los pedidos pendientes vencen normalmente; para crear pedidos
 nuevos usa la interfaz. Un marcador de venta identifica la carga completada;
-no borres sus registros directamente. Si existen correos, SKU, documentos o
+no borres sus registros directamente. Otro marcador identifica la ampliación
+de proveedores/compras: una demo de la versión anterior se amplía una sola vez,
+sin alterar sus productos, cuentas, ventas ni pedidos. Las compras de ejemplo
+usan un catálogo nuevo y separado. Si existen correos, SKU, documentos o
 categorías reservados de demo sin una carga completa, se informa un conflicto
 y no se reemplaza trabajo existente.
 
 Recorrido sugerido: entra como administrador, revisa Productos/Fotos/Inventario,
 Clientes, Ventas y Reportes; entra como vendedor para cobrar y preparar pedidos;
+revisa también Proveedores y Compras para recibir una compra pendiente o cancelarla;
 entra como Ana o Bruno para agregar productos, crear pedidos y consultar solamente
 los propios. Comprueba el pedido preparado sin pagar (entrega bloqueada) y el
 preparado pagado (entrega disponible).
@@ -384,3 +412,34 @@ La validación de paginación se encuentra en `src/common/dto/pagination.dto.ts`
 AuthService centraliza la creación de cuentas y el reemplazo de contraseñas con revocación de sesiones. El registro público fija CUSTOMER; el controlador de usuarios mantiene la autorización de administrador. `session-cookie.ts` contiene el nombre y la lectura validada de la cookie; `config-origins.ts` comparte la configuración entre CORS y la protección de escrituras.
 
 Las reglas de desactivación, cambios de padre y unicidad de categorías, subcategorías y productos permanecen en sus servicios porque tienen restricciones distintas. No se añadió un CRUD genérico que esconda estas reglas ni se modificó el esquema de la base de datos.
+
+## Caja, turnos y alertas
+
+Implementados apertura, movimientos manuales, cobros/reembolsos ligados a turno, resumen por método y cierre con arqueo. ADMIN administra cajas y supervisa todos los turnos; cada responsable opera el suyo. Nuxt exige turno para registrar nuevos cobros/reembolsos. Las alertas operativas descuentan reservas vigentes. Consulta [contratos y compatibilidad](docs/cash-and-stock-alerts-api.md).
+
+### Ejemplos de caja en el seed demo
+
+La demo añade tres cajas propias y cinco turnos con diez movimientos manuales de efectivo:
+
+| Cuenta | Turno | Apertura | Ingresos | Retiros | Esperado | Contado | Diferencia |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| vendedor@demo.example.com | Cerrado exacto | 100.00 | 50.00 | 20.00 | 130.00 | 130.00 | 0.00 |
+| laura@demo.example.com | Cerrado con faltante | 150.00 | 30.00 | 20.00 | 160.00 | 155.00 | -5.00 |
+| admin@demo.example.com | Cerrado con sobrante | 80.00 | 20.00 | 10.00 | 90.00 | 92.00 | 2.00 |
+| vendedor@demo.example.com | Abierto | 100.00 | 50.00 | 20.00 | 130.00 | — | — |
+| laura@demo.example.com | Abierto | 150.00 | 30.00 | 10.00 | 170.00 | — | — |
+
+Caja principal queda libre para abrir un turno con tu administrador. ADMIN ve todos los turnos; cada vendedor opera y cierra el suyo. Los cobros y reembolsos anteriores siguen sin asignarse a estos turnos: no se reescribe su historial ni se inventan pagos. Los nuevos cobros registrados desde ventas se vinculan al turno abierto del usuario.
+
+Antes de ejecutar, compila y aplica las migraciones. En Docker, desde la carpeta del backend:
+
+    docker compose up -d --build --wait backend
+    docker compose exec backend node scripts/seed-demo.cjs --local
+
+Fuera de Docker, con DATABASE_URL local:
+
+    npm run build
+    npm run db:migrate
+    npm run db:seed:demo -- --local
+
+Repetir el seed conserva movimientos posteriores, turnos cerrados por el usuario, nombres de cajas, contraseñas y existencias. También amplía una demo anterior sin caja. Si alguna cuenta demo ya tiene un turno abierto ajeno a estos ejemplos, la primera ampliación se rechaza y conserva todo: cierra ese turno antes de reintentar. No ejecutes un reset de la base para añadir estos ejemplos.

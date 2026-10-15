@@ -13,6 +13,7 @@ import {
   Max,
   Min,
   ValidateNested,
+  ValidateIf,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { PaginationDto } from '../../common/dto/pagination.dto';
@@ -71,6 +72,16 @@ export enum PaymentMethodDto {
   TRANSFER = 'TRANSFER',
 }
 export class SalePaymentDto extends SaleOperationDto {
+  @ApiPropertyOptional({
+    description:
+      'Explicit open shift; otherwise the actor’s open shift is used. Legacy operations without an open shift remain unassigned.',
+  })
+  @ValidateIf((_object, value: unknown) => value !== undefined)
+  @IsInt()
+  @Min(1)
+  @Max(2147483647)
+  cashShiftId?: number;
+
   @ApiProperty()
   @IsString()
   @Matches(/^(0|[1-9]\d{0,15})\.\d{2}$/)

@@ -1,3 +1,4 @@
+import { cashSummary, checkCashBalance } from '../../cash/utils/cash-ledger';
 import {
   BadRequestException,
   ConflictException,
@@ -8,6 +9,7 @@ import { hashRequest } from '../../common/utils/request-hash';
 import { Prisma, SaleOperationKind } from '../../../generated/prisma/client';
 import { PrismaService } from '../../database/services/prisma.service';
 import {
+  PaymentMethodDto,
   SaleOperationDto,
   SalePaymentDto,
   SaleReturnDto,
@@ -41,6 +43,9 @@ export class SaleOperationsService {
       amount: 'amount' in dto ? dto.amount : null,
       method: 'method' in dto ? dto.method : null,
       lines,
+      ...('cashShiftId' in dto && dto.cashShiftId !== undefined
+        ? { cashShiftId: dto.cashShiftId }
+        : {}),
     });
     return this.db.catalogWrite(async (tx) => {
       const previous = await tx.saleOperation.findUnique({
@@ -124,6 +129,34 @@ export class SaleOperationsService {
         }
       }
       const user = await tx.user.findUniqueOrThrow({ where: { userId } });
+      const isSettlement = kind === 'PAYMENT' || kind === 'REFUND';
+      const explicitShift = 'cashShiftId' in dto ? dto.cashShiftId : undefined;
+      const shift = isSettlement
+        ? await tx.cashShift.findFirst({
+            where: explicitShift
+              ? { shiftId: explicitShift }
+              : { userId, closedAt: null },
+          })
+        : null;
+      if (
+        explicitShift &&
+        (!shift || shift.closedAt || shift.userId !== userId)
+      )
+        throw new ConflictException(
+          'El turno indicado no está abierto a tu nombre',
+        );
+      if (shift && 'method' in dto && dto.method === PaymentMethodDto.CASH) {
+        const summary = await cashSummary(
+          tx,
+          shift.shiftId,
+          shift.openingAmount,
+        );
+        checkCashBalance(
+          new Prisma.Decimal(summary.expectedAmount).add(
+            kind === 'PAYMENT' ? amount : amount.negated(),
+          ),
+        );
+      }
       const operation = await tx.saleOperation.create({
         data: {
           saleId,
@@ -145,6 +178,21 @@ export class SaleOperationsService {
         },
         include: { items: true },
       });
+      if (shift && 'method' in dto && (kind === 'PAYMENT' || kind === 'REFUND'))
+        await tx.cashMovement.create({
+          data: {
+            shiftId: shift.shiftId,
+            userId,
+            userName: user.name,
+            requestId: dto.requestId,
+            requestHash,
+            kind,
+            method: dto.method,
+            amount,
+            reason: dto.reason,
+            saleOperationId: operation.operationId,
+          },
+        });
       for (const line of reversed) {
         const inventory = await tx.inventory.findUniqueOrThrow({
           where: { productId: line.productId },

@@ -76,6 +76,8 @@ enum Role {
 }
 
 model User {
+  cashShifts         CashShift[]
+  cashMovements      CashMovement[]
   purchases          Purchase[]
   purchaseOperations PurchaseOperation[]
   orders             Order[]
@@ -386,20 +388,21 @@ enum PaymentMethod {
 }
 
 model SaleOperation {
-  operationId Int                 @id @default(autoincrement())
-  requestId   String              @unique @db.Uuid
-  requestHash String              @db.VarChar(64)
-  saleId      Int
-  sale        Sale                @relation(fields: [saleId], references: [saleId], onDelete: Restrict)
-  userId      Int
-  user        User                @relation(fields: [userId], references: [userId], onDelete: Restrict)
-  userName    String              @db.VarChar(100)
-  kind        SaleOperationKind
-  amount      Decimal             @db.Decimal(18, 2)
-  method      PaymentMethod?
-  reason      String              @db.VarChar(500)
-  createdAt   DateTime            @default(now())
-  items       SaleOperationItem[]
+  cashMovement CashMovement?
+  operationId  Int                 @id @default(autoincrement())
+  requestId    String              @unique @db.Uuid
+  requestHash  String              @db.VarChar(64)
+  saleId       Int
+  sale         Sale                @relation(fields: [saleId], references: [saleId], onDelete: Restrict)
+  userId       Int
+  user         User                @relation(fields: [userId], references: [userId], onDelete: Restrict)
+  userName     String              @db.VarChar(100)
+  kind         SaleOperationKind
+  amount       Decimal             @db.Decimal(18, 2)
+  method       PaymentMethod?
+  reason       String              @db.VarChar(500)
+  createdAt    DateTime            @default(now())
+  items        SaleOperationItem[]
 
   @@index([saleId, operationId])
 }
@@ -415,4 +418,61 @@ model SaleOperationItem {
   stockMovement   StockMovement?
 
   @@unique([operationId, saleItemId])
+}
+
+model CashRegister {
+  registerId Int         @id @default(autoincrement())
+  name       String      @unique @db.VarChar(100)
+  isActive   Boolean     @default(true)
+  shifts     CashShift[]
+}
+
+model CashShift {
+  shiftId        Int            @id @default(autoincrement())
+  registerId     Int
+  register       CashRegister   @relation(fields: [registerId], references: [registerId], onDelete: Restrict)
+  userId         Int
+  user           User           @relation(fields: [userId], references: [userId], onDelete: Restrict)
+  userName       String         @db.VarChar(100)
+  requestId      String         @unique @db.Uuid
+  requestHash    String         @db.VarChar(64)
+  openingAmount  Decimal        @db.Decimal(18, 2)
+  openedAt       DateTime       @default(now())
+  closedAt       DateTime?
+  closeRequestId String?        @unique @db.Uuid
+  closeHash      String?        @db.VarChar(64)
+  countedAmount  Decimal?       @db.Decimal(18, 2)
+  expectedAmount Decimal?       @db.Decimal(18, 2)
+  difference     Decimal?       @db.Decimal(18, 2)
+  closeReason    String?        @db.VarChar(500)
+  movements      CashMovement[]
+
+  @@index([userId, shiftId])
+}
+
+model CashMovement {
+  movementId      Int              @id @default(autoincrement())
+  shiftId         Int
+  shift           CashShift        @relation(fields: [shiftId], references: [shiftId], onDelete: Restrict)
+  userId          Int
+  user            User             @relation(fields: [userId], references: [userId], onDelete: Restrict)
+  userName        String           @db.VarChar(100)
+  requestId       String           @unique @db.Uuid
+  requestHash     String           @db.VarChar(64)
+  kind            CashMovementKind
+  method          PaymentMethod    @default(CASH)
+  amount          Decimal          @db.Decimal(18, 2)
+  reason          String           @db.VarChar(500)
+  createdAt       DateTime         @default(now())
+  saleOperationId Int?             @unique
+  saleOperation   SaleOperation?   @relation(fields: [saleOperationId], references: [operationId], onDelete: Restrict)
+
+  @@index([shiftId, movementId])
+}
+
+enum CashMovementKind {
+  CASH_IN
+  CASH_OUT
+  PAYMENT
+  REFUND
 }

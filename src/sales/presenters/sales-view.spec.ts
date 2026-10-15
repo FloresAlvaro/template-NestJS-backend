@@ -8,6 +8,7 @@ function operation(
   quantity = 0,
 ): SaleDetail['operations'][number] {
   return {
+    cashMovement: null,
     operationId: 1,
     requestId: '11111111-1111-4111-8111-111111111111',
     requestHash: 'private-operation-hash',

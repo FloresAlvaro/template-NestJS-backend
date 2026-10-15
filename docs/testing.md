@@ -15,6 +15,13 @@ reales: autorización ADMIN, validación, históricos, Decimal, recepción concu
 idempotencia, cancelación, costos opcionales, desbordamiento y rollback de entradas
 y costos. Ver [contrato y alcance](purchases-api.md).
 
+La suite `npm run test:seed` verifica **18 casos** del catálogo, demo comercial,
+proveedores/compras y modo `--local`. Comprueba login y permisos de ADMIN, dos
+SELLER y CUSTOMER, una cuenta inactiva, recepción y costos coherentes, rollback,
+colisiones, ampliación desde una demo anterior e idempotencia sin restablecer
+contraseñas ni cambios manuales. El modo local también se ejecuta como proceso
+CLI real y se comprueba que no imprime la contraseña pública de prueba.
+
 `test/orders.e2e-spec.ts` verifica sesiones y Origin reales, aislamiento del
 propietario, precisión monetaria, reservas, cancelación, expiración y reinicio,
 confirmación y entrega con cobros manuales. Incluye compras concurrentes entre
@@ -158,3 +165,9 @@ La ampliación inicial no modificó los contratos. La corrección posterior cons
 rutas, esquema y dependencias, y cierra el bypass del límite de autenticación.
 Para actualizar una instancia local que siga ejecutando el código anterior,
 usar `docker compose up -d --build backend`.
+
+## Caja y alertas
+
+La suite cash-alerts.e2e-spec.ts amplía la batería con transacciones de caja y alertas por disponibilidad. Se ejecuta con test:e2e sobre TEST_DATABASE_URL terminada en _test. Para la batería completa, conservar Mailpit temporal para recuperación de contraseña. La prueba de rollback genera intencionalmente un error 500 y verifica que no se guardan cobros ni movimientos parciales.
+
+El seed demo también prueba cinco turnos, diez movimientos y tres cierres con diferencias exactas (0.00, -5.00, 2.00). Verifica ampliación desde una demo sin caja, preservación de movimientos posteriores, rechazo de colisiones/turnos ajenos y rollback completo ante un fallo de caja.

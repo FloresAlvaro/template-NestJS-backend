@@ -23,7 +23,7 @@
     "db:migrate": "prisma migrate deploy",
     "db:migrate:dev": "prisma migrate dev",
     "db:seed": "node scripts/seed.cjs",
-    "test:seed": "node --test --test-concurrency=1 scripts/seed.test.cjs scripts/seed-demo.test.cjs",
+    "test:seed": "node --test --test-concurrency=1 scripts/seed.test.cjs scripts/seed-demo.test.cjs scripts/seed-demo-utils.test.cjs",
     "test:unit": "jest --runInBand",
     "admin:create": "node scripts/create-admin.cjs",
     "test:admin": "node --test scripts/create-admin.test.cjs",

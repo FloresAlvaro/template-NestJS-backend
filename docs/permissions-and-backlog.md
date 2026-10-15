@@ -6,7 +6,7 @@ y el [índice de diagramas](diagrams/README.md).
 
 ## Resultado
 
-El backend declara actualmente **79 rutas en 16 controladores**. Reportes incluye
+El backend declara actualmente **90 rutas en 18 controladores**. Reportes incluye
 siete lecturas exclusivas de ADMIN. Imágenes de gestión permite GET a ADMIN/SELLER
 y POST/DELETE a ADMIN; la lectura pública valida la activación de todos los padres.
 Recuperación de contraseña y pedidos están integrados con Nuxt. Ver
@@ -14,7 +14,7 @@ Recuperación de contraseña y pedidos están integrados con Nuxt. Ver
 [recuperación](password-recovery-api.md) e [imágenes](product-images-api.md).
 
 La revisión inicial de 49 rutas se conserva abajo como evidencia histórica;
-no equivale a una comprobación HTTP exhaustiva de las 79 rutas actuales.
+no equivale a una comprobación HTTP exhaustiva de las rutas actuales.
 
 El guard global permite GET/HEAD/OPTIONS a ADMIN y SELLER, y el resto de métodos
 solo a ADMIN, salvo decoradores explícitos. La metadata del método prevalece
@@ -32,6 +32,9 @@ Todas las rutas de esta tabla llevan el prefijo `/api`.
 | `/sub-categories`, `/sub-categories/:id` | ADMIN/SELLER | ADMIN: POST raíz, PATCH por ID, PATCH `:id/activate`, DELETE por ID |
 | `/products`, `/products/:id` | ADMIN/SELLER; costo visible solo a ADMIN | ADMIN: POST raíz, PATCH por ID, PATCH `:id/activate`, DELETE por ID |
 | `/products/:id/inventory` y `/movements` relativo | ADMIN/SELLER | ADMIN: PATCH inventario y POST movimientos |
+| `/cash/registers` | ADMIN/SELLER | ADMIN: crear/modificar cajas |
+| `/cash/shifts` y detalle/movimientos | ADMIN: todos; SELLER: propios | ADMIN/SELLER: abrir turno propio, movimientos y cierre propios |
+| `/inventory/alerts` | ADMIN/SELLER, sin costos | No existen |
 | `/customers`, `/customers/:id` | ADMIN/SELLER | POST: ADMIN/SELLER; PATCH por ID: ADMIN |
 | `/sales`, `/sales/:id` | ADMIN/SELLER | POST raíz y `:id/payments`: ADMIN/SELLER; `:id/refunds`, `:id/returns`, `:id/cancel`: ADMIN |
 | `/orders`, `/orders/:id` | ADMIN/SELLER: todos; CUSTOMER: propios | POST raíz: CUSTOMER; `:id/confirm`, `:id/ready`, `:id/complete`: ADMIN/SELLER; `:id/cancel`: ADMIN/SELLER y CUSTOMER propietario, solo PENDING |
@@ -85,7 +88,8 @@ implementación ni presupone que todos formen parte del alcance del producto.
 | Implementado localmente | Recuperación de contraseña por correo | SMTP/Mailpit y pantallas Nuxt implementados; proveedor de producción y estrategia de entrega/reintentos pendientes |
 | Implementado parcialmente | Compras de autoservicio | Pedidos CUSTOMER, reservas, retiro y cobros manuales disponibles; carrito persistente, envíos, pasarela y notificaciones pendientes |
 | Alta | Búsqueda y filtros del catálogo público | Actualmente solo paginación; búsqueda, categoría, precio y disponibilidad pendientes |
-| Media | Caja: apertura, cierre y conciliación | Propuesta; los cobros actuales son registros manuales |
+| Implementado | Caja: apertura, cierre y arqueo | Turnos por responsable, movimientos, métodos separados y cierres auditados; ver [contrato](cash-and-stock-alerts-api.md). Cierre por supervisor y conciliación bancaria pendientes |
+| Implementado | Alertas operativas de stock | Disponibilidad descontando reservas, aviso en Inicio y vista filtrable; correo/push pendientes |
 | Implementado | Reportes de ventas y existencias | Siete endpoints y seis gráficos Nuxt con tablas exactas y filtros; exportaciones, metas y rentabilidad pendientes |
 | Media | Comprobantes y exportaciones | Impresión de comprobantes comerciales y descarga CSV/PDF pendientes; no equivalen a facturación fiscal |
 | Implementado | Proveedores, compras y recepción | ADMIN: compras pendientes, recepción completa idempotente con entradas auditadas y costos opcionales; ver [contrato](purchases-api.md). Parciales, devoluciones y cuentas por pagar pendientes |

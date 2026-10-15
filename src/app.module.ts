@@ -1,3 +1,4 @@
+import { CashModule } from './cash/cash.module';
 import { ShopModule } from './shop/shop.module';
 import { CustomersModule } from './customers/customers.module';
 import { SalesModule } from './sales/sales.module';
@@ -36,6 +37,7 @@ import { PurchasesModule } from './purchases/purchases.module';
     OrdersModule,
     SuppliersModule,
     PurchasesModule,
+    CashModule,
   ],
   controllers: [],
   providers: [],

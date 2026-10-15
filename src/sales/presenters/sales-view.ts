@@ -2,7 +2,7 @@ import { Prisma } from '../../../generated/prisma/client';
 export const saleInclude = {
   items: true,
   operations: {
-    include: { items: true },
+    include: { items: true, cashMovement: { select: { shiftId: true } } },
     orderBy: { operationId: 'asc' as const },
   },
 } satisfies Prisma.SaleInclude;

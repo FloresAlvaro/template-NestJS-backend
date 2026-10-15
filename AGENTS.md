@@ -85,6 +85,9 @@ no la uses como lista de pendientes. Contrasta la documentación con la implemen
   revocación de sesiones al cambiar contraseña, rol o estado del usuario.
 - Mantén las protecciones del último administrador y del administrador actual.
   No agregues credenciales predeterminadas ni registres secretos en logs o archivos.
+  Excepción solicitada por el usuario: las cuentas ficticias del seed admiten la
+  contraseña pública de prueba documentada en README únicamente con `--local`.
+  Conserva la validación de destino local y no restablezcas contraseñas existentes.
 - No debilites permisos, CORS, cookies ni límites de autenticación para lograr
   que una prueba pase. No habilites `trust proxy` sin diseñar su frontera de confianza.
 
@@ -171,3 +174,10 @@ npm run test:e2e -- --runInBand
 - Entrega un resumen breve con qué cambió, cómo se verificó y qué quedó pendiente.
   Distingue comprobaciones realizadas de las que no pudiste ejecutar. Actualiza
   Swagger y la documentación de las APIs cuando cambien sus contratos.
+
+## Caja y alertas operativas
+
+- CashModule mantiene turnos por responsable e índices parciales para un turno abierto por caja/usuario. ADMIN supervisa todos, pero cada responsable opera y cierra el suyo. No borrar ni reabrir historial.
+- Cobros y reembolsos usan el turno propio abierto o cashShiftId explícito; la API conserva compatibilidad con registros sin turno. Nuevos flujos Nuxt envían identificador explícito. El ledger y la operación se guardan bajo catalogWrite en un solo commit. Tarjeta/transferencia no afectan el efectivo.
+- El cierre valida lastMovementId y registra contado, esperado y diferencia exactos. Los reintentos conservan UUID/actor/hash incluso después del cierre.
+- /inventory/alerts descuenta reservas PENDING vigentes y excluye padres inactivos; no sustituirlo por el reporte histórico de stock físico. Ver docs/cash-and-stock-alerts-api.md.

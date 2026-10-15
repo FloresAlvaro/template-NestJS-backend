@@ -1,28 +1,23 @@
 require('dotenv/config');
 require('reflect-metadata');
-const { createHash } = require('node:crypto');
+const {
+  requestId,
+  validate,
+  LOCAL_DEMO_PASSWORD,
+  assertLocalDemoTarget,
+} = require('./seed-demo-utils.cjs');
+const {
+  seedPurchasingDemo,
+  validatePurchasingFixtures,
+} = require('./seed-purchasing-demo.cjs');
+const purchasingFixtures = require('./seed-purchasing-data.cjs');
+const { seedCashDemo } = require('./seed-cash-demo.cjs');
 const { seed, validateCatalog } = require('./seed.cjs');
 const catalog = require('./seed-data.cjs');
 const fixtures = require('./seed-demo-data.cjs');
 
-// UUID v4 estable: identifica la carga completa sin añadir tablas al dominio.
-function requestId(key) {
-  const hex = createHash('sha256')
-    .update(`tienda-demo-v1:${key}`)
-    .digest('hex');
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
-}
 const markerId = requestId('sale-unpaid');
 const reason = (text) => `Demo de tienda: ${text}`;
-
-function validate(Dto, input) {
-  const { plainToInstance } = require('class-transformer');
-  const { validateSync } = require('class-validator');
-  const dto = plainToInstance(Dto, input);
-  if (validateSync(dto, { whitelist: true, forbidNonWhitelisted: true }).length)
-    throw new Error(`Datos de demo inválidos para ${Dto.name}.`);
-  return dto;
-}
 
 function illustration(kind) {
   const shapes = {
@@ -67,14 +62,18 @@ function transactionServices(tx, userIds) {
   const {
     SaleOperationsService,
   } = require('../dist/src/sales/services/sale-operations.service');
-  const { OrdersService } = require('../dist/src/orders/services/orders.service');
+  const {
+    OrdersService,
+  } = require('../dist/src/orders/services/orders.service');
   const {
     InventoryService,
   } = require('../dist/src/inventory/services/inventory.service');
   const {
     ProductImagesService,
   } = require('../dist/src/products/services/product-images.service');
+  const { CashService } = require('../dist/src/cash/services/cash.service');
   return {
+    cash: new CashService(db),
     sales: new SalesService(db),
     operations: new SaleOperationsService(db),
     orders: new OrdersService(db, { get: (_key, fallback) => fallback }),
@@ -96,6 +95,7 @@ async function seedDemo(prisma, { adminEmail, password } = {}) {
     );
   for (const { isActive, ...user } of fixtures.users)
     validate(CreateUserDto, { ...user, password });
+  validatePurchasingFixtures(password);
   const demoCatalog = [
     {
       name: fixtures.categoryName,
@@ -150,10 +150,19 @@ async function seedDemo(prisma, { adminEmail, password } = {}) {
           throw new Error(
             'El identificador reservado de la demo pertenece a otra operación.',
           );
+        const purchasing = await seedPurchasingDemo(tx, {
+          adminEmail,
+          passwordHash,
+        });
+        const cash = await seedCashDemo(tx, transactionServices(tx, []).cash);
         return {
           alreadyLoaded: true,
+          purchasing,
+          cash,
           message:
-            'La demo ya estaba cargada; se conservan sus cambios, estados, contraseñas y existencias.',
+            purchasing.alreadyLoaded && cash.alreadyLoaded
+              ? 'La demo ya estaba cargada; se conservan sus cambios, estados, contraseñas y existencias.'
+              : 'Demo existente ampliada con los ejemplos faltantes de compras y caja. Se conservan todos los registros anteriores.',
         };
       }
       const collisions = [
@@ -565,19 +574,28 @@ async function seedDemo(prisma, { adminEmail, password } = {}) {
         },
       });
       // Este registro es el marcador de commit: nunca se publica una demo parcial.
+      const purchasing = await seedPurchasingDemo(tx, {
+        adminEmail,
+        passwordHash,
+      });
       const unpaid = await createSale('sale-unpaid', [[0, 2]], 'ana');
+      const cash = await seedCashDemo(tx, services.cash);
       sales.push({ scenario: 'unpaid', saleId: unpaid.saleId });
       return {
         alreadyLoaded: false,
         catalog: catalogStats,
         demoCatalog: demoStats,
-        users: fixtures.users.map(({ email, role, isActive }) => ({
-          email,
-          role,
-          isActive,
-        })),
+        users: [...fixtures.users, ...purchasingFixtures.users].map(
+          ({ email, role, isActive }) => ({
+            email,
+            role,
+            isActive,
+          }),
+        ),
         customersCreated: 5,
-        demoProductsCreated: 10,
+        demoProductsCreated: 10 + purchasing.productsCreated,
+        purchasing,
+        cash,
         imagesCreated: pictures.size,
         sales,
         orders,
@@ -592,11 +610,18 @@ async function main() {
     throw new Error('Configura DATABASE_URL antes de cargar los datos.');
   const { existsSync } = require('node:fs');
   const { resolve } = require('node:path');
-  if (!existsSync(resolve(__dirname, '../dist/src/sales/services/sales.service.js')))
+  if (
+    !existsSync(
+      resolve(__dirname, '../dist/src/sales/services/sales.service.js'),
+    )
+  )
     throw new Error(
       'Primero ejecuta npm run build para generar Prisma y los servicios.',
     );
-  let password = process.env.SEED_DEMO_PASSWORD;
+  const local = process.argv.includes('--local');
+  if (local) assertLocalDemoTarget(process.env.DATABASE_URL);
+  let password =
+    process.env.SEED_DEMO_PASSWORD || (local ? LOCAL_DEMO_PASSWORD : undefined);
   if (!password) {
     const { Writable } = require('node:stream');
     const readline = require('node:readline/promises');
@@ -633,11 +658,28 @@ async function main() {
     adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
   });
   try {
+    let adminEmail = process.env.SEED_ADMIN_EMAIL;
+    if (local && !adminEmail) {
+      const admins = await prisma.user.findMany({
+        where: {
+          role: 'ADMIN',
+          isActive: true,
+          email: { notIn: purchasingFixtures.users.map((user) => user.email) },
+        },
+        select: { email: true },
+        take: 2,
+      });
+      if (admins.length !== 1)
+        throw new Error(
+          'Configura SEED_ADMIN_EMAIL: debe existir un administrador activo inequívoco para auditar la carga.',
+        );
+      adminEmail = admins[0].email;
+    }
     console.log(
       'Demo completada:',
       JSON.stringify(
         await seedDemo(prisma, {
-          adminEmail: process.env.SEED_ADMIN_EMAIL,
+          adminEmail,
           password,
         }),
         null,
