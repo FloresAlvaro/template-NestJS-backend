@@ -356,7 +356,7 @@ Las escrituras requieren Origin incluido en TRUSTED_ORIGINS. Clientes HTTP como
 Postman también deben enviar este encabezado. Las consultas de perfil usan el
 usuario autenticado y no aceptan un userId externo.
 
-`TRUSTED_ORIGINS` contiene orígenes separados por comas, sin barra final. En despliegue configura el origen HTTPS real y `COOKIE_SECURE=true`. Compose usa `COOKIE_SECURE=false` exclusivamente para localhost HTTP. Nuxt usa un proxy del mismo origen hacia este backend. Login y registro admiten 10 intentos/minuto por dirección de conexión; el límite es local a cada proceso y, detrás del proxy Nuxt, se comparte por su conexión. Para múltiples instancias o publicación utiliza un límite centralizado en el proxy de confianza. No habilitar trust proxy sin restringir el acceso directo.
+`TRUSTED_ORIGINS` contiene orígenes separados por comas, sin barra final. En despliegue configura el origen HTTPS real y `COOKIE_SECURE=true`. Compose usa `COOKIE_SECURE=false` exclusivamente para localhost HTTP. Nuxt usa un proxy del mismo origen hacia este backend. Login y registro comparten 10 intentos/minuto por dirección de cliente; recuperación tiene su propio contador. Los contadores son atómicos en PostgreSQL y se comparten entre instancias. Configura el mismo secreto privado de al menos 32 caracteres en `AUTH_PROXY_SECRET` (backend) y `NUXT_AUTH_PROXY_SECRET` (Nuxt) para que el proxy firme la IP de su conexión entrante. Sin secreto se usa la IP de conexión directa, por lo que los clientes de un proxy comparten límite. No se confía en `X-Forwarded-For` ni se habilita `trust proxy`. Ver [límite de autenticación](docs/auth-throttle.md).
 
 ### Pruebas
 

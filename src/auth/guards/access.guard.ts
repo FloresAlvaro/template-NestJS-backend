@@ -6,7 +6,6 @@ import {
   Injectable,
   UnauthorizedException,
   ForbiddenException,
-  HttpException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
@@ -14,18 +13,20 @@ import { PrismaService } from '../../database/services/prisma.service';
 import { Role } from '../../../generated/prisma/client';
 import { AuthRequest, userSelect } from '../types/auth.types';
 import { tokenHash } from '../security/password';
+import { authClientAddress } from '../security/proxy-client';
+import { consumeAuthAttempt } from '../security/auth-throttle';
 
 @Injectable()
 export class AccessGuard implements CanActivate {
-  private readonly attempts = new Map<
-    string,
-    { count: number; until: number }
-  >();
   constructor(
     private readonly reflector: Reflector,
     private readonly db: PrismaService,
     private readonly config: ConfigService,
-  ) {}
+  ) {
+    const secret = this.config.get<string>('AUTH_PROXY_SECRET');
+    if (secret && secret.length < 32)
+      throw new Error('AUTH_PROXY_SECRET must contain at least 32 characters');
+  }
   async canActivate(context: ExecutionContext) {
     const req = context.switchToHttp().getRequest<AuthRequest>();
     const safe = ['GET', 'HEAD', 'OPTIONS'].includes(req.method);
@@ -44,14 +45,14 @@ export class AccessGuard implements CanActivate {
         throw new ForbiddenException('Untrusted request origin');
     }
     if (recovery || authentication) {
-      const now = Date.now();
-      for (const [key, value] of this.attempts)
-        if (value.until <= now) this.attempts.delete(key);
-      const key = `${recovery ? 'recovery:' : ''}${req.ip ?? 'unknown'}`;
-      const bucket = this.attempts.get(key) ?? { count: 0, until: now + 60000 };
-      if (++bucket.count > 10 || this.attempts.size >= 10000)
-        throw new HttpException('Too many attempts. Try again later.', 429);
-      this.attempts.set(key, bucket);
+      const address = authClientAddress(
+        req,
+        this.config.get<string>('AUTH_PROXY_SECRET'),
+      );
+      await consumeAuthAttempt(
+        this.db,
+        `${recovery ? 'recovery:' : 'auth:'}${address}`,
+      );
     }
     if (this.reflector.getAllAndOverride<boolean>('public', targets))
       return true;

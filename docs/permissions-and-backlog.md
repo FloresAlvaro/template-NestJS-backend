@@ -83,7 +83,7 @@ implementación ni presupone que todos formen parte del alcance del producto.
 | Prioridad sugerida | Trabajo | Estado / alcance |
 | --- | --- | --- |
 | Alta, antes de publicar | Resolver dependencias vulnerables restantes | Ver `dependency-security.md`; evitar retrocesos incompatibles de Prisma/Jest |
-| Alta, antes de publicar | Límite centralizado de login/registro | El actual es local a cada proceso; diseñar proxy de confianza sin habilitar `trust proxy` indiscriminadamente |
+| Implementado; configurar antes de publicar | Límite centralizado de login/registro | PostgreSQL atómico e identidad firmada por Nuxt; configurar secreto privado compartido. Ver [contrato](auth-throttle.md) |
 | Alta, antes de publicar | Política de exposición de Swagger y stock público | Resolver las observaciones anteriores y documentar los contratos elegidos |
 | Alta, antes de publicar | Operación de producción | Configurar HTTPS, correo real, monitoreo, copias de seguridad y verificar restauración |
 | Media | Automatización frontend y CI | Frontend dispone de typecheck/build y revisión manual; no hay suite automatizada de navegador ni workflows CI versionados |

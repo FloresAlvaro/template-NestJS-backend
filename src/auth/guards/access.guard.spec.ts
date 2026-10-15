@@ -38,7 +38,11 @@ function fixture(role: Role = Role.ADMIN, method = 'GET') {
   const findUnique = jest.fn((): Promise<typeof session | null> =>
     Promise.resolve(session),
   );
-  const db = { session: { findUnique } } as unknown as PrismaService;
+  const queryRaw = jest.fn().mockResolvedValue([{ attempts: 1 }]);
+  const db = {
+    session: { findUnique },
+    $queryRaw: queryRaw,
+  } as unknown as PrismaService;
   const guard = new AccessGuard(
     new Reflector(),
     db,
@@ -58,6 +62,7 @@ function fixture(role: Role = Role.ADMIN, method = 'GET') {
     handler,
     controller,
     token,
+    queryRaw,
   };
 }
 
@@ -142,21 +147,21 @@ describe('Global access policy', () => {
     f.findUnique.mockRejectedValue(outage);
     await expect(f.guard.canActivate(f.context)).rejects.toBe(outage);
   });
-  it('expires the recovery throttle window without weakening the public-write Origin check', async () => {
-    jest.useFakeTimers().setSystemTime(new Date('2026-01-01T00:00:00Z'));
+  it('uses the shared throttle and validates Origin before consuming an attempt', async () => {
     const f = fixture(Role.ADMIN, 'POST');
     Reflect.defineMetadata('public', true, f.controller);
     Reflect.defineMetadata('recoveryThrottle', true, f.controller);
-    for (let i = 0; i < 10; i++)
-      await expect(f.guard.canActivate(f.context)).resolves.toBe(true);
+    await expect(f.guard.canActivate(f.context)).resolves.toBe(true);
+    f.queryRaw.mockResolvedValueOnce([{ attempts: 11 }]);
     await expect(f.guard.canActivate(f.context)).rejects.toMatchObject({
       status: 429,
     });
-    jest.advanceTimersByTime(60000);
     await expect(f.guard.canActivate(f.context)).resolves.toBe(true);
+    const calls = f.queryRaw.mock.calls.length;
     f.req.headers.origin = 'https://foreign.example';
     await expect(f.guard.canActivate(f.context)).rejects.toThrow(
       ForbiddenException,
     );
+    expect(f.queryRaw).toHaveBeenCalledTimes(calls);
   });
 });

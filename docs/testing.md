@@ -173,3 +173,28 @@ La suite cash-alerts.e2e-spec.ts amplía la batería con transacciones de caja y
 El seed demo también prueba cinco turnos, diez movimientos y tres cierres con diferencias exactas (0.00, -5.00, 2.00). Verifica ampliación desde una demo sin caja, preservación de movimientos posteriores, rechazo de colisiones/turnos ajenos y rollback completo ante un fallo de caja.
 
 La suite admin-features.e2e-spec.ts verifica auditoría transaccional, promociones y notificaciones de pedidos contra PostgreSQL y Mailpit aislados. Requiere TEST_DATABASE_URL, TEST_MAILPIT_URL y TEST_SMTP_PORT. Los errores 500 de auditoría son inyectados intencionalmente para probar rollback; no indican un fallo de la suite.
+
+## Regresiones de autenticación — 15/10/2026
+
+`test/auth-throttle.e2e-spec.ts` verifica concurrencia entre dos aplicaciones,
+aislamiento de clientes firmados, rechazo de firmas manipuladas y renovación de
+ventana con PostgreSQL real. `test/setup-auth-throttle.ts` limpia exclusivamente
+los contadores en la base `_test` antes de cada caso; no los reinicia entre las
+instancias creadas dentro del mismo caso.
+
+### Validación de los fixes del 15/10/2026
+
+- Build del backend, ESLint, 88 pruebas unitarias y 8 pruebas de administrador: correctos.
+- PostgreSQL 17 y Mailpit temporales en Docker, base `market_review_test`: 15
+  migraciones aplicadas y 161 pruebas e2e de 14 suites correctas. Los errores
+  simulados de auditoría, ledger y movimientos forman parte de pruebas de rollback.
+- Imagen del Dockerfile construida y arrancada como usuario node; migraciones
+  de arranque correctas. Nuxt compilado en el host contra esa API: login firmado
+  (descartando cabeceras falsas), sesión, pantallas de gestión, logout y revocación.
+- API detenida: `/`, `/login` y `/shop` responden 200 con aviso; `/sales` responde 503.
+- Frontend: typecheck/build y seis pruebas Node correctas; login y recuperación
+  de conexión revisados en navegador.
+- No se actualizó la base ni el despliegue habitual. El despliegue de esta versión
+  requiere la migración nueva y el secreto compartido descrito en auth-throttle.md.
+- La construcción sigue mostrando avisos de dependencias ya documentados en
+  dependency-security.md; no se aplicaron actualizaciones incompatibles.
