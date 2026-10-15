@@ -8,6 +8,5 @@ generated
 coverage
 test
 docs
-deploy
 *.log
 deploy
