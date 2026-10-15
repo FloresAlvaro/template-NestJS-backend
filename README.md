@@ -19,6 +19,7 @@ Las consultas son ADMIN y no constituyen cierre de caja ni cálculo de ganancias
 - [Permisos y pendientes reales](docs/permissions-and-backlog.md).
 - [Pruebas y última validación](docs/testing.md).
 - [Frontend: instalación y uso](../template-NuxtJS-frontend/README.md) (checkout hermano).
+- [Despliegue en home lab: Docker, HTTPS, arranque y backups/restauración](docs/homelab-deployment.md).
 
 Pendientes principales: búsqueda/filtros públicos, caja, comprobantes/exportaciones,
 recepciones parciales, devoluciones a proveedores, carrito persistente y notificaciones. Pagos en línea, envíos,

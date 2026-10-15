@@ -1,0 +1,10 @@
+[Unit]
+Description=Backup PostgreSQL y configuración de Tienda
+Requires=docker.service
+After=docker.service tienda-caddy.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /srv/tienda/template-NestJS-backend/deploy/homelab-caddy/backup.sh
+UMask=0077
+TimeoutStartSec=3600

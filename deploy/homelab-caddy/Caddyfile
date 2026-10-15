@@ -1,0 +1,8 @@
+{$TIENDA_HOST} {
+    # LAN: instala la CA de Caddy en cada cliente. Para ACME público elimina esta línea.
+    tls internal
+    encode zstd gzip
+    reverse_proxy frontend:3000 {
+        header_up X-Real-IP {remote_host}
+    }
+}
