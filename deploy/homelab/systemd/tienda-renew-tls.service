@@ -1,0 +1,9 @@
+[Unit]
+Description=Renovar certificado de Tienda emitido por la CA privada del homelab
+Requires=docker.service
+After=docker.service
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/market/template-NestJS-backend/deploy/homelab
+ExecStart=/opt/market/template-NestJS-backend/deploy/homelab/renew-tls.sh
+UMask=0077

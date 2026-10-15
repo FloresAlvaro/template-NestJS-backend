@@ -1,0 +1,10 @@
+[Unit]
+Description=Backup PostgreSQL de Tienda Homelab
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/market/template-NestJS-backend/deploy/homelab
+ExecStart=/opt/market/template-NestJS-backend/deploy/homelab/backup.sh
+UMask=0077
