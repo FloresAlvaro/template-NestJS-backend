@@ -1,0 +1,114 @@
+name: tienda-homelab
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: tienda
+      POSTGRES_DB: tienda
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Configura POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tienda -d tienda"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    logging: *logging
+
+  backend:
+    image: tienda-backend:${APP_TAG:-local}
+    build:
+      context: ../..
+    restart: unless-stopped
+    init: true
+    environment:
+      DATABASE_URL: postgresql://tienda:${POSTGRES_PASSWORD:?Configura POSTGRES_PASSWORD}@db:5432/tienda?schema=public
+      PORT: "3001"
+      COOKIE_SECURE: "true"
+      TRUSTED_ORIGINS: https://${TIENDA_HOST:?Configura TIENDA_HOST}
+      PASSWORD_RESET_URL: https://${TIENDA_HOST:?Configura TIENDA_HOST}/reset-password
+      ORDER_RESERVATION_MINUTES: ${ORDER_RESERVATION_MINUTES:-1440}
+      ORDER_NOTIFICATIONS_ENABLED: ${ORDER_NOTIFICATIONS_ENABLED:-true}
+      SMTP_HOST: ${SMTP_HOST:?Configura SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_REQUIRE_TLS: ${SMTP_REQUIRE_TLS:-true}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:?Configura MAIL_FROM}
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      start_period: 60s
+      retries: 10
+    logging: *logging
+
+  frontend:
+    image: tienda-frontend:${APP_TAG:-local}
+    build:
+      context: ../../../template-NuxtJS-frontend
+    restart: unless-stopped
+    init: true
+    environment:
+      NUXT_BACKEND_API_BASE: http://backend:3001/api
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
+      retries: 10
+    logging: *logging
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      TIENDA_HOST: ${TIENDA_HOST:?Configura TIENDA_HOST}
+    ports:
+      - "${BIND_IP:-127.0.0.1}:80:80"
+      - "${BIND_IP:-127.0.0.1}:443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      frontend:
+        condition: service_healthy
+    logging: *logging
+
+  restore-db:
+    image: postgres:17-alpine
+    profiles: [restore]
+    environment:
+      POSTGRES_USER: tienda
+      POSTGRES_DB: tienda_restore
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Configura POSTGRES_PASSWORD}
+    volumes:
+      - restore_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tienda -d tienda_restore"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    logging: *logging
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:
+  restore_data:

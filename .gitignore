@@ -56,3 +56,8 @@ pids
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 /generated/prisma
+
+# Secretos y copias del despliegue home lab
+/deploy/homelab/.env
+/deploy/homelab/*.dump
+/deploy/homelab/*.tar.gz
