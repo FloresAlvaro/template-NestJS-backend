@@ -198,3 +198,17 @@ instancias creadas dentro del mismo caso.
   requiere la migración nueva y el secreto compartido descrito en auth-throttle.md.
 - La construcción sigue mostrando avisos de dependencias ya documentados en
   dependency-security.md; no se aplicaron actualizaciones incompatibles.
+
+### Revisión previa a PR — 15/10/2026
+
+Se repitieron build, ESLint, 88 pruebas unitarias y 8 del administrador.
+En Docker, dos bases desechables independientes (`market_pr_test` y
+`market_seed_test`) recibieron las 15 migraciones; pasaron 162 pruebas e2e y
+22 del seed. La regresión nueva verifica limpieza acotada de contadores vencidos
+sin reiniciar contadores activos. El rechazo de promoción 403 incluye ahora el
+código `PROMOTION_NOT_ALLOWED`, comprobado por e2e, para distinguirlo del guard.
+Frontend: typecheck/build y siete pruebas correctas; conserva UUID tras perder
+la respuesta y recibir después errores 401/403/408/429 o del transporte, y separa
+los cobros pendientes por usuario. La auditoría npm de producción sigue mostrando
+tres paquetes con severidad alta en la cadena Prisma/deepmerge-ts y cero críticos;
+no se forzaron cambios incompatibles. No hay CI versionado en estas ramas.

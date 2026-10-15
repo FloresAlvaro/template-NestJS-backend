@@ -5,6 +5,7 @@ import request from 'supertest';
 import { createHmac, randomUUID } from 'node:crypto';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../src/database/services/prisma.service';
+import { consumeAuthAttempt } from '../src/auth/security/auth-throttle';
 import { AppModule } from '../src/app.module';
 import { configureApp } from '../src/config/configure-app';
 
@@ -84,6 +85,26 @@ describe('Authentication throttle routing regressions', () => {
       .send({})
       .expect(429);
   });
+  it('bounds expired-counter cleanup and retains the active counter', async () => {
+    const db = app.get(PrismaService);
+    await db.authRateLimit.createMany({
+      data: Array.from({ length: 150 }, () => ({
+        key: randomUUID(),
+        attempts: 11,
+        expiresAt: new Date(Date.now() - 600000),
+      })),
+    });
+    await consumeAuthAttempt(db, 'cleanup-active');
+    expect(await db.authRateLimit.count({ where: { attempts: 11 } })).toBe(50);
+    await Promise.all(
+      Array.from({ length: 9 }, () => consumeAuthAttempt(db, 'cleanup-active')),
+    );
+    expect(await db.authRateLimit.count({ where: { attempts: 11 } })).toBe(0);
+    await expect(
+      consumeAuthAttempt(db, 'cleanup-active'),
+    ).rejects.toMatchObject({ status: 429 });
+  });
+
   it('shares atomic limits across instances while keeping signed clients independent', async () => {
     const secret = 'integration-proxy-secret-at-least-32-characters';
     app.get(ConfigService).set('AUTH_PROXY_SECRET', secret);

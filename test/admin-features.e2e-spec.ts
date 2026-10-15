@@ -377,7 +377,10 @@ describe('Administrative audit, durable order notifications and controlled promo
   it('checks promotion permission, validity, minimum, expected total and version', async () => {
     const config = promotionBody();
     const p = await promotion({ ...config, allowSeller: false });
-    await post('/api/sales', 'SELLER').send(saleBody(p)).expect(403);
+    const denied = await post('/api/sales', 'SELLER')
+      .send(saleBody(p))
+      .expect(403);
+    expect(denied.body).toMatchObject({ code: 'PROMOTION_NOT_ALLOWED' });
     await patch('/api/promotions/' + p.promotionId, {
       ...config,
       allowSeller: true,

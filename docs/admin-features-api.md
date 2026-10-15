@@ -54,3 +54,11 @@ La venta guarda grossTotal, discountTotal y promotionSnapshot con código, nombr
 admin-features.e2e-spec.ts comprueba sesiones/roles/Origin, actor concurrente, valores monetarios exactos, auditoría sin secretos e inmutable, rollback de catálogo cuando falla la auditoría, descuentos idempotentes, devolución al precio neto histórico, mínimos/vigencia/permisos/versiones y aislamiento/reintentos/rollback de notificaciones con SMTP real capturado en Mailpit. Las suites anteriores y seed siguen usando PostgreSQL aislado terminado en _test.
 
 Frontend: typecheck/build y tests/promotion.test.mjs (Node 24) para redondeo exacto y conversiones de zona horaria. Las pantallas nuevas son /audit, /notifications y /promotions; nueva venta incluye la selección y detalle conserva la promoción aplicada.
+
+## Rechazo de permisos al aplicar promociones
+
+Si SELLER intenta aplicar una promoción reservada a ADMIN, la creación de venta
+responde 403 con `code: "PROMOTION_NOT_ALLOWED"` y `message`. No registra la venta.
+El frontend puede desbloquear el formulario ante ese rechazo de negocio. Un 403
+del guard o del proxy no confirma el resultado de un intento anterior y debe
+conservar su UUID para reintentar sin duplicar operaciones.
